@@ -536,6 +536,7 @@
 
   /* ===== PRINT ===== */
   @media print {
+ @page { size: A4; margin: 0; }
  /* La page 7 est la version écran des remarques/signatures.
     A l'impression, seule sa version paginée (#remarks-render-pages)
     doit être imprimée. Les règles renforcées évitent que Safari/iOS
@@ -558,7 +559,8 @@
     body { background: white; font-size: 10px; }
     .page {
       box-shadow: none; margin: 0; padding: 6mm 7mm 8mm 7mm;
-      width: 210mm; min-height: 297mm;
+      width: 210mm; height: 297mm; min-height: 0; max-height: 297mm;
+      overflow: hidden;
     }
     .action-bar { display: none; }
     .photo-source-modal { display: none !important; }
@@ -1812,15 +1814,22 @@ async function saveReport() {
         const fileName = nomFichier + ".json";
         const file = new File([jsonStr], fileName, { type: "application/json" });
 
-        // 1. Détection Web Share API (Méthode native iOS / Safari mobile)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        // 1. Détection Web Share API (Méthode native, réservée à iOS/Safari)
+        // Sur Windows/Android, on utilise toujours le téléchargement direct
+        // ci-dessous : plus fiable, et évite une erreur "Permission denied"
+        // que certains navigateurs renvoient si le partage natif est déclenché
+        // après la boîte de dialogue du nom de fichier (activation utilisateur expirée).
+        const ua = navigator.userAgent || '';
+        const isIOSDevice = /iPad|iPhone|iPod/.test(ua);
+
+        if (isIOSDevice && navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
                 files: [file],
                 title: nomFichier,
                 text: "Rapport d'assistance à la mise en service HITACHI"
             });
         } else {
-            // 2. Méthode classique pour navigateurs Desktop (Windows, Mac, etc.)
+            // 2. Méthode classique (Windows, Android, macOS, etc.)
             const blob = new Blob([jsonStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -2962,11 +2971,20 @@ function updateUIChFirstPage(){
 // ===================================================================
 
 // 1. Enregistrement du Service Worker (permet le fonctionnement hors ligne)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
-            .catch((err) => console.error('Erreur Service Worker :', err));
-    });
+// Protégé par try/catch : certains contextes (aperçu OneDrive/SharePoint,
+// iframe "sandboxée", ouverture en file://) interdisent l'accès à l'API
+// Service Worker. Dans ce cas, on ignore simplement — le reste du rapport
+// continue de fonctionner normalement, seul le mode hors-ligne est absent
+// tant que la page n'est pas ouverte depuis sa vraie adresse hébergée.
+try {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .catch((err) => console.warn('Service Worker indisponible :', err));
+        });
+    }
+} catch (err) {
+    console.warn('API Service Worker inaccessible dans ce contexte (aperçu sandboxé, etc.) :', err);
 }
 
 // 2. Invite d'installation ("Ajouter à l'écran d'accueil")
