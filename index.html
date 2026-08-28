@@ -1,0 +1,3239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rapport d'assistance à la mise en service DRV / UTOPIA – BOSCH</title>
+
+<!-- ===== PWA : manifest, icônes, couleurs ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c8102e">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<!-- Support "ajout à l'écran d'accueil" iOS (Safari ne lit pas le manifest) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rapport DRV">
+
+<!-- Support Windows / Edge -->
+<meta name="msapplication-TileColor" content="#c8102e">
+<meta name="msapplication-TileImage" content="icons/icon-192.png">
+
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --red: #c8102e;
+    --red-dark: #a00d24;
+    --gray-header: #b0b0b0;
+    --gray-bg: #e8e8e8;
+    --gray-cell: #f4f4f4;
+    --gray-alt: #d4d4d4;
+    --border: #bbb;
+    --text: #1a1a1a;
+    --white: #fff;
+    --font: 'Arial Narrow', Arial, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--text);
+    background: #e0e0e0;
+    line-height: 1.3;
+  }
+
+  .input-unit{
+    display:inline-grid;
+    grid-template-columns: 60px 35px 20px;
+    align-items:center;
+}
+
+.double-flux-select{
+    margin-left: 8px;
+}
+
+.input-unit input{
+    width:60px;
+    text-align:right;
+}
+
+.intensite-charge-table .label-col {
+    text-align: center;
+}
+
+.unite{
+    margin-left:2px;
+    min-width:10px;
+    width:35px;
+    text-align:center;
+}
+
+.alerte-triangle{
+    text-align:center;
+
+    width:20px;      /* largeur fixe */
+
+    color:#c8102e;
+    font-size:16px;
+
+    visibility:hidden; /* invisible mais garde sa place */
+}
+
+.ligne-intensite-max td,
+.ligne-intensite-max input,
+.ligne-intensite-max span{
+    color:#c8102e !important;
+    font-weight:700;
+}
+
+.p3-escl1,
+.p3-escl2,
+.p3-escl3{
+    display:none;
+}
+
+.p4-escl1,
+.p4-escl2,
+.p4-escl3{
+    display:none;
+}
+
+  /* ===== PAGE CONTAINER ===== */
+  .page {
+    background: var(--white);
+    width: 210mm;
+    min-height: 297mm;
+    margin: 12px auto;
+    padding: 8mm 8mm 15mm 8mm;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    page-break-after: always;
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+}
+  
+  /* ===== HEADER ===== */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    border-bottom: 2px solid var(--red);
+    padding-bottom: 4px;
+  }
+  .page-header-title {
+    flex: 1;
+  }
+  .page-header-title h1 {
+    font-size: 19px;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1.15;
+    letter-spacing: -0.3px;
+  }
+  .hitachi-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .hitachi-logo .logo-text {
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .hitachi-logo .logo-sub {
+    font-size: 11px;
+    color: var(--text);
+    text-align: right;
+    line-height: 1;
+    letter-spacing: 0.5px;
+    font-style: italic;
+  }
+
+  .page-footer-info {
+    position: absolute;
+    bottom: 5mm;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    padding: 4px 8px 0;
+    line-height: 1.2;
+    font-size: 9px;
+  }
+
+  /* ===== ALERTES COMPATIBLES MOBILE / iOS ===== */
+  .status-alert-badge {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    padding: 2px 5px;
+    border: 1px solid #c8102e;
+    border-radius: 3px;
+    background: #fff1f3;
+    color: #c8102e;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .status-alert-badge.visible { display: inline-flex; }
+  .status-select.nonconforme,
+  .status-select.select-alerte {
+    color: #c8102e !important;
+    font-weight: 700 !important;
+    border-color: #c8102e !important;
+  }
+
+
+  /* ===== SECTION ALERTE ===== */
+  .select-alerte{
+    color:#c8102e !important;
+    font-weight:700 !important;
+  }
+
+  /* ===== SECTION TITLE ===== */
+  .section-title {
+    background: var(--red);
+    color: var(--white);
+    font-weight: 700;
+    font-size: 11px;
+    text-align: center;
+    padding: 4px 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .sub-section-title {
+    background: var(--gray-header);
+    color: var(--white);
+    font-weight: 700;
+    font-size: 10px;
+    text-align: center;
+    padding: 3px 6px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .block {
+    border: 1px solid var(--border);
+    margin-bottom: 5px;
+  }
+
+  /* ===== FORM FIELDS ===== */
+  .form-input {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    font-family: var(--font);
+    font-size: 11px;
+    color: var(--text);
+    width: 100%;
+    padding: 1px 2px;
+    outline: none;
+    min-width: 0;
+  }
+  .form-input:focus { background: #fffde7; }
+
+  input[type="hidden"] {
+    width: 11px; height: 11px;
+    cursor: pointer;
+    accent-color: var(--red);
+    vertical-align: middle;
+    margin-right: 2px;
+  }
+
+  /* ===== COORDONNÉES ===== */
+  .coord-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .coord-col { padding: 3px 5px; }
+  .coord-col + .coord-col { border-left: 1px solid var(--border); }
+  .coord-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 0;
+    border-bottom: 1px solid #e8e8e8;
+  }
+  .coord-row:last-child { border-bottom: none; }
+  .coord-label { font-weight: 700; white-space: nowrap; min-width: 72px; }
+  .coord-input { flex: 1; }
+
+  /* ===== INTERVENANT ===== */
+  .intervenant-grid { padding: 4px 6px; }
+  .intervenant-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 0;
+    border-bottom: 1px solid #e8e8e8;
+  }
+  .intervenant-row:last-child { border-bottom: none; }
+  .intervenant-row .label { font-weight: 700; min-width: 90px; white-space: nowrap; }
+  .intervenant-check-row {
+    display: flex;
+    justify-content: center;
+    padding: 4px 20px;
+  }
+  .intervenant-check-row label { display: flex; align-items: center; gap: 4px; font-weight: 700; }
+
+  /* ===== TABLE GENERIC ===== */
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 2px 4px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  th { background: var(--gray-header); color: var(--white); font-weight: 700; font-size: 10px; }
+  td { background: var(--gray-cell); }
+  td.label-col { text-align: left; background: var(--white); font-weight: 600; }
+  td input { background: transparent; border: none; width: 100%; text-align: center; font-size: 10px; font-family: var(--font); outline: none; }
+  td input:focus { background: #fffde7; }
+
+  /* ===== UE TABLE ===== */
+  .ue-header-row { display: flex; gap: 0; }
+  .ue-check-row { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 3px 8px; }
+  .ue-check-row label { display: flex; align-items: center; gap: 3px; }
+
+  /* ===== CHECKLIST ===== */
+  .cl-row {
+    display: flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-bottom: 1px solid #e8e8e8;
+    gap: 6px;
+  }
+  .cl-row:last-child { border-bottom: none; }
+  .cl-label { flex: 1; font-weight: 600; }
+  .cl-checks { display: flex; align-items: center; gap: 8px; }
+  .cl-checks label { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+
+  /* Tableau Check-List électrique UE */
+  .checklist-elec-ue{
+    table-layout: auto;
+  }
+
+  .checklist-elec-ue .label-col{
+      width: 180px;
+      white-space: nowrap;
+  }
+
+  /* Champs limités à 3 caractères */
+  .checklist-elec-ue .input-unit{
+      grid-template-columns: 35px 30px 20px;
+  }
+
+  .checklist-elec-ue .input-unit input{
+      width: 45px;
+      min-width: 45px;
+      text-align: right;
+  }
+
+  /* ===== FRIGO ===== */
+  .frigo-row {
+    display: flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-bottom: 1px solid #e8e8e8;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .frigo-row:last-child { border-bottom: none; }
+  .frigo-cat { font-weight: 700; min-width: 120px; }
+  .frigo-desc { flex: 1; }
+  .frigo-checks { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .frigo-checks label { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+  .frigo-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .frigo-field { display: flex; align-items: center; gap: 3px; }
+  .frigo-field input { width: 50px; }
+
+  /* ===== ELEC CHECKLIST ===== */
+  .elec-block { padding: 4px 6px; }
+
+  /* ===== RELEVÉS ELECTRICITÉ ===== */
+  .releves-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .releves-grid .label-col {
+      text-align: center;
+  }
+  .releves-sub { border-right: 1px solid var(--border); }
+  .releves-sub:last-child { border-right: none; }
+
+  /* ===== BUS COM ===== */
+  .bus-row {
+    display: flex; align-items: center; gap: 6px; padding: 2px 6px;
+    border-bottom: 1px solid #e8e8e8; flex-wrap: wrap;
+  }
+  .bus-row:last-child { border-bottom: none; }
+  .bus-row .label { font-weight: 700; white-space: nowrap; }
+  .bus-row input { width: 55px; }
+
+  /* ===== WARNING BOX ===== */
+  .warning-box {
+    display: flex; align-items: flex-start; gap: 8px;
+    border: 2px solid #e8a000; background: #fffbe6;
+    padding: 6px 8px; margin-bottom: 5px; border-radius: 2px;
+  }
+  .warning-icon { font-size: 20px; line-height: 1; }
+  .warning-text { font-size: 10px; font-weight: 700; }
+
+  /* ===== SWITCH PHOTOS ===== */
+  .switch-grid { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr); gap:1px; padding:1px; width:100%; box-sizing:border-box; overflow:hidden; }
+  .switch-cell {
+    border: 1px solid var(--border);
+    min-height: 185px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--gray-cell);
+    padding: 4px; gap: 4px; position: relative;
+  }
+  .switch-cell-label { font-size: 9px; color: #666; text-align: center; }
+  .switch-upload-btn {
+    background: var(--gray-alt); border: 1px dashed var(--border);
+    color: #555; font-size: 9px; cursor: pointer; padding: 3px 8px;
+    border-radius: 2px;
+  }
+  .switch-preview {
+    width:100%; height:165px; object-fit:contain; display:none; border-radius:2px;
+  }
+  .switch-cell input[type="file"],
+  .photo-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ===== OPTIONAL FUNCTIONS TABLE ===== */
+  .opt-table th, .opt-table td { font-size: 10px; }
+  #ui-opt-table th input{
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    color: white;
+    font: inherit;
+    width: auto;
+    min-width: 1ch;
+  }
+  #ui-opt-table{
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  /* ===== UI TABLE ===== */
+  .ui-sub { border-right: 1px solid var(--border); }
+  .ui-sub:last-child { border-right: none; }
+
+  /* ===== REMARKS ===== */
+  .remarks-area {
+    width: 100%; min-height: 160px; height: 160mm; border: none; resize: vertical;
+    font-family: var(--font); font-size: 11px; padding: 6px;
+    background: var(--gray-cell); outline: none;
+  }
+  .remarks-area:focus { background: #fffde7; }
+
+  /* ===== ARRIVÉE / DÉPART + SIGNATURES ===== */
+  .completion-block { border:1px solid var(--border); margin-top:6px; margin-bottom:6px; background:var(--white); }
+  .completion-times { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+  .completion-time-cell { padding:5px 7px; display:flex; align-items:center; gap:7px; }
+  .completion-time-cell + .completion-time-cell { border-left:1px solid var(--border); }
+  .completion-time-cell label { font-weight:700; white-space:nowrap; }
+  .completion-time-cell input { flex:1; min-width:0; height:25px; }
+  .signatures-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid var(--border); }
+  .signature-cell { padding:5px 7px 7px; }
+  .signature-cell + .signature-cell { border-left:1px solid var(--border); }
+  .signature-label { display:block; font-weight:700; margin-bottom:4px; background: var(--gray-header); color: var(--white); padding: 4px 6px; text-align: center; text-transform: uppercase; }
+  .signature-pad-wrap { position:relative; height:120px; border:1px solid var(--border); background:#fff; touch-action:none; overflow:hidden; }
+  .signature-pad { display:block; width:100%; height:100%; cursor:crosshair; touch-action:none; }
+  .signature-clear { position:absolute; right:4px; bottom:4px; padding:3px 7px; border:1px solid var(--border); border-radius:2px; background:rgba(255,255,255,.92); color:#333; font-family:var(--font); font-size:9px; font-weight:700; cursor:pointer; }
+
+  /* ===== ACTION BUTTONS ===== */
+  .action-bar {
+    display: flex; gap: 10px; align-items: center; margin-top: 8px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .btn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--red); color: var(--white);
+    border: none; padding: 7px 14px; font-size: 11px; font-weight: 700;
+    cursor: pointer; border-radius: 3px; font-family: var(--font);
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--red-dark); }
+  .btn-icon { font-size: 16px; }
+
+  /* ===== DATE FIELD TOP ===== */
+  .top-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 10px; font-weight: 700; margin-bottom: 3px;
+  }
+  .top-meta .date-field { display: flex; align-items: center; gap: 4px; }
+  .top-meta input { width: 100px; font-size: 10px; }
+  .reserved-text { font-size: 10px; color: #444; font-weight: 700; }
+
+  /* ===== MODE TEST COLORS ===== */
+  .froid-col { background: #dce8f8 !important; }
+  .chaud-col { background: #fde8dc !important; }
+  .froid-header { background: #2a6fc9 !important; color: #fff; }
+  .chaud-header { background: var(--red) !important; color: #fff; }
+
+  /* ===== CHOIX SOURCE PHOTO ===== */
+  .photo-source-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,.45);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .photo-source-modal.visible { display: flex; }
+  .photo-source-card {
+    width: min(360px, 100%);
+    background: #fff;
+    border-radius: 8px;
+    padding: 18px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.3);
+    text-align: center;
+  }
+  .photo-source-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .photo-source-btn {
+    width: 100%;
+    justify-content: center;
+    margin: 7px 0;
+    min-height: 44px;
+  }
+  .photo-source-cancel {
+    width: 100%;
+    margin-top: 8px;
+    min-height: 40px;
+    border: 1px solid var(--border);
+    background: #f4f4f4;
+    color: #333;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+
+  /* ===== PRINT ===== */
+  @media print {
+ @page { size: A4; margin: 0; }
+ /* La page 7 est la version écran des remarques/signatures.
+    A l'impression, seule sa version paginée (#remarks-render-pages)
+    doit être imprimée. Les règles renforcées évitent que Safari/iOS
+    conserve cette page dans le flux d'impression. */
+ #page7{
+   display:none !important;
+   visibility:hidden !important;
+   height:0 !important;
+   min-height:0 !important;
+   max-height:0 !important;
+   margin:0 !important;
+   padding:0 !important;
+   overflow:hidden !important;
+   page-break-after:avoid !important;
+   break-after:avoid-page !important;
+ }
+ #remarks-render-pages:empty{display:none !important;}
+ #remarks-render-pages .page{display:block !important;}
+ #remarks-render-pages .page:last-child{page-break-after:auto !important; break-after:auto !important;}
+ /* La dernière page de photos ne doit pas non plus forcer de saut. */
+ #photo-pages .page:last-child{page-break-after:auto !important; break-after:auto !important;}
+    body { background: white; font-size: 10px; }
+    .page {
+      box-shadow: none; margin: 0; padding: 6mm 7mm 8mm 7mm;
+      width: 210mm; height: 285mm; min-height: 0; max-height: 285mm;
+      overflow: hidden;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .action-bar { display: none; }
+    .photo-source-modal { display: none !important; }
+    .no-print { display: none !important; }
+    input, textarea { border-color: transparent !important; }
+    .form-input { border-bottom-color: #aaa !important; }
+    .switch-upload-btn { display: none; }
+    .switch-preview { display: block !important; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page-header-title h1 { font-size: 17px; }
+    .hitachi-logo .logo-text { font-size: 22px; }
+  }
+
+  /* ===== RESPONSIVE (screen only — jamais appliqué à l'impression) ===== */
+  @media screen and (max-width: 720px) {
+    body { background: #fff; font-size: 10px; }
+    .page {
+      width: 100%;
+      margin: 0;
+      padding: 4mm 4mm 5mm;
+      box-shadow: none;
+      min-height: auto;
+    }
+    /* Sur téléphone le pied de page ne doit jamais être superposé au contenu. */
+    .page-footer-info {
+      position: static;
+      width: 100%;
+      margin-top: 12px;
+      padding: 6px 4px 0;
+      font-size: 8px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+    .page-header-title h1 { font-size: 14px; }
+    .hitachi-logo .logo-text { font-size: 20px; }
+    .coord-grid, .releves-grid, .ui-grid { grid-template-columns: 1fr; }
+    .completion-times, .signatures-grid { grid-template-columns:1fr; }
+    .completion-time-cell + .completion-time-cell, .signature-cell + .signature-cell { border-left:none; border-top:1px solid var(--border); }
+    .coord-col + .coord-col { border-left: none; border-top: 1px solid var(--border); }
+    .switch-grid { grid-template-columns: 1fr; }
+    .switch-cell { min-height: 60px; }
+    table { font-size: 9px; }
+    th, td { padding: 1px 2px; }
+    .btn { font-size: 11px; }
+    .frigo-checks { margin-left: 0; }
+    .status-alert-badge { font-size: 8px; padding: 2px 4px; }
+  }
+
+.status-select{padding:2px 4px;border:1px solid #bbb;background:#fff;font-family:var(--font);}
+.status-select.nonconforme{color:#c8102e;font-weight:700;}
+.hidden{display:none;}
+.escl1,
+.escl2,
+.escl3{
+    display:none;
+}
+
+.add-esclave-btn{
+    margin-left:4px;
+    background:#c8102e;
+    color:#fff;
+    border:none;
+    border-radius:2px;
+    width:18px;
+    height:18px;
+    cursor:pointer;
+    font-weight:700;
+}
+
+#btnRemoveEsclave{
+    display:none;
+}
+
+.ui-elec-ligne{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:50px;
+    flex-wrap:wrap;
+}
+
+.ui-elec-ligne .frigo-field{
+    display:flex;
+    align-items:center;
+    gap:4px;
+}
+
+#alertDiffUI{
+    margin-left:4px;
+}
+
+#ui-ch-print-pages .page{
+    page-break-after:always;
+}
+
+.p2-escl1,.p2-escl2,.p2-escl3{display:none;}
+
+/* ===== MENU PRINCIPAL ===== */
+.app-view{ display:none; }
+.app-view.active{ display:block; }
+
+.menu-screen{
+  min-height:100vh;
+  background: var(--gray-bg);
+  padding: 24px 16px 40px;
+  display:none;
+}
+.menu-screen.active{ display:block; }
+
+.menu-header{
+  max-width: 760px;
+  margin: 0 auto 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom: 3px solid var(--red);
+  padding-bottom: 10px;
+}
+.menu-header h1{
+  font-size: 18px;
+  font-weight:900;
+  color: var(--text);
+  line-height:1.2;
+}
+.menu-header .hitachi-logo{ position:static; }
+
+.menu-grid{
+  max-width: 760px;
+  margin: 0 auto;
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.menu-tile{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height: 110px;
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  border-radius: 16px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight:700;
+  text-align:center;
+  line-height:1.25;
+  padding: 14px 10px;
+  cursor:pointer;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+  transition: background 0.15s, transform 0.1s;
+}
+.menu-tile:hover{ background: var(--red-dark); }
+.menu-tile:active{ transform: scale(0.97); }
+.menu-tile .menu-tile-icon{ font-size: 26px; line-height:1; }
+.menu-tile.disabled{
+  background:#b8b8b8;
+  cursor:default;
+}
+.menu-tile.disabled:hover{ background:#b8b8b8; }
+.menu-tile .menu-tile-soon{
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  opacity:0.9;
+}
+
+.btn-menu-retour{ background:#555; }
+.btn-menu-retour:hover{ background:#333; }
+
+@media print{
+  .menu-screen{ display:none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ MENU PRINCIPAL ============================================================ -->
+<div id="view-menu" class="app-view menu-screen no-print">
+  <div class="menu-header">
+    <h1>Choisissez un rapport</h1>
+    <div class="hitachi-logo"><span class="logo-text">BOSCH</span><span class="logo-sub">Cooling &amp; Heating</span></div>
+  </div>
+
+  <div class="menu-grid">
+    <button type="button" class="menu-tile" onclick="openReport('drv-utopia')">
+      <span class="menu-tile-icon">📄</span>
+      Rapport DRV/Utopia
+    </button>
+    <button type="button" class="menu-tile disabled" onclick="openReport('pac')">
+      <span class="menu-tile-icon">📄</span>
+      Rapport PAC
+      <span class="menu-tile-soon">Bientôt disponible</span>
+    </button>
+    <button type="button" class="menu-tile disabled" onclick="openReport('pv')">
+      <span class="menu-tile-icon">📄</span>
+      Procès Verbal
+      <span class="menu-tile-soon">Bientôt disponible</span>
+    </button>
+    <button type="button" class="menu-tile disabled" onclick="openReport('chiller-m')">
+      <span class="menu-tile-icon">📄</span>
+      Rapport Chiller M
+      <span class="menu-tile-soon">Bientôt disponible</span>
+    </button>
+    <button type="button" class="menu-tile disabled" onclick="openReport('chiller-l')">
+      <span class="menu-tile-icon">📄</span>
+      Rapport Chiller L
+      <span class="menu-tile-soon">Bientôt disponible</span>
+    </button>
+    <button type="button" class="menu-tile disabled" onclick="openReport('gtb')">
+      <span class="menu-tile-icon">📄</span>
+      Rapport GTB
+      <span class="menu-tile-soon">Bientôt disponible</span>
+    </button>
+    <button type="button" class="menu-tile disabled" onclick="openReport('csnet2')">
+      <span class="menu-tile-icon">📄</span>
+      Rapport CSNET MANAGER 2
+      <span class="menu-tile-soon">Bientôt disponible</span>
+    </button>
+    <button type="button" class="menu-tile disabled" onclick="openReport('dxkit')">
+      <span class="menu-tile-icon">📄</span>
+      Rapport DX-KIT
+      <span class="menu-tile-soon">Bientôt disponible</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================ RAPPORT : DRV / UTOPIA ============================================================ -->
+<div id="view-report-drv-utopia" class="app-view">
+
+<!-- ============================================================ PAGE 1 ============================================================ -->
+<div class="page" id="page1">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="page-header-title">
+      <h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1>
+    </div>
+    <div class="hitachi-logo">
+      <span class="logo-text">BOSCH</span>
+      <span class="logo-sub">Cooling &amp; Heating</span>
+    </div>
+  </div>
+
+  <div class="top-meta">
+    <span class="reserved-text">Document réservé au personnel BOSCH et aux stations techniques agréées.</span>
+    <div class="date-field">
+      <span>Date :</span>
+      <input type="date" class="form-input" style="width:110px;">
+    </div>
+  </div>
+
+  <!-- COORDONNÉES -->
+  <div class="block">
+    <div class="section-title">Coordonnées</div>
+    <div class="coord-grid">
+      <div>
+        <div class="sub-section-title">Installateur</div>
+        <div class="coord-col">
+          <div class="coord-row"><span class="coord-label">Société :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Nom/Prénom :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Adresse :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Code Postal :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Ville :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Téléphone :</span><input type="text" class="form-input coord-input force-maj"></div>
+        </div>
+      </div>
+      <div>
+        <div class="sub-section-title">Client Final</div>
+        <div class="coord-col">
+          <div class="coord-row"><span class="coord-label">Société :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Nom/Prénom :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Adresse :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Code Postal :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Ville :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Téléphone :</span><input type="text" class="form-input coord-input force-maj"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERVENANT -->
+  <div class="block">
+    <div class="section-title">Intervenant</div>
+    <div class="intervenant-check-row"><span style="font-weight:700"></span><select class="status-select"><option></option><option>Technicien BOSCH</option><option>Technicien STATION TECHNIQUE</option></select></div>
+    <div class="intervenant-grid">
+      <div class="intervenant-row"><span class="label">Nom/Prénom :</span><input type="text" class="form-input force-maj" style="flex:1"></div>
+      <div class="intervenant-row"><span class="label">Entreprise :</span><input type="text" class="form-input force-maj" style="flex:1"></div>
+      <div class="intervenant-row"><span class="label">N° de capacité :</span><input type="text" class="form-input force-maj" style="flex:1"></div>
+    </div>
+  </div>
+
+  <!-- UNITÉS EXTÉRIEURES -->
+  <div class="block">
+    <div class="section-title">Unité(s) Extérieure(s)</div>
+    <div>
+      <div class="ue-check-row">
+  <span style="font-weight:700;">
+    Raccordée en :
+  </span>
+
+  <select
+      class="form-input"
+      style="
+        width:120px;
+        border:1px solid var(--border);
+        background:white;
+        padding:2px 4px;">
+    <option value=""></option>
+    <option value="2 TUBES">2 TUBES</option>
+    <option value="3 TUBES">3 TUBES</option>
+  </select>
+</div>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>
+    Maître
+
+    <button type="button"
+            id="btnAddEsclave"
+            class="add-esclave-btn no-print"
+            onclick="ajouterEsclave()">+</button>
+
+    <button type="button"
+            id="btnRemoveEsclave"
+            class="add-esclave-btn no-print"
+            onclick="retirerEsclave()">−</button>
+</th>
+<th class="escl1">Esclave 1</th><th class="escl2">Esclave 2</th><th class="escl3">Esclave 3</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="label-col">Modèle :</td>
+
+<td>
+    <input type="text"
+           id="modeleMaitre"
+           class="modele-ue force-maj">
+</td>
+
+<td class="escl1">
+    <input type="text"
+           id="modeleEscl1"
+           class="modele-ue force-maj">
+</td>
+
+<td class="escl2">
+    <input type="text"
+           id="modeleEscl2"
+           class="modele-ue force-maj">
+</td>
+
+<td class="escl3">
+    <input type="text"
+           id="modeleEscl3"
+           class="modele-ue force-maj">
+</td>
+
+          </tr>
+          <tr>
+            <td class="label-col">Numéro de série :</td>
+            <td><input type="text" class="force-maj"></td><td class="escl1"><input type="text" class="force-maj"></td><td class="escl2"><input type="text" class="force-maj"></td><td class="escl3"><input type="text" class="force-maj"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CHECKLIST INSTALLATION -->
+  <div class="block">
+    <div class="section-title">Check-List Installation</div>
+    <div class="sub-section-title">Unité(s) Intérieure(s)</div>
+    <div class="cl-row">
+      <span class="cl-label">Isolation tuyauteries :</span>
+      <div class="cl-checks">
+        <select class="status-select"><option></option><option>Oui</option><option>Non</option><option>À finir</option></select>
+      </div>
+    </div>
+    <div class="cl-row">
+      <span class="cl-label">Isolation gainable :</span>
+      <div class="cl-checks">
+        <select class="status-select"><option></option><option>Oui</option><option>Non</option><option>À finir</option></select>
+      </div>
+    </div>
+    <div class="sub-section-title">Unité(s) Extérieure(s)</div>
+    <div class="cl-row"><span class="cl-label">Silent bloc :</span><div class="cl-checks"><select class="status-select" data-alert="Non conforme"><option></option><option>Conforme</option><option>Non conforme</option></select></div></div>
+    <div class="cl-row"><span class="cl-label">Espace vital respecté :</span><div class="cl-checks"><select class="status-select" data-alert="Non conforme"><option></option><option>Conforme</option><option>Non conforme</option></select></div></div>
+    <div class="cl-row"><span class="cl-label">Implantation dans un local :</span><div class="cl-checks"><select class="status-select"><option></option><option>Oui</option><option>Non</option></select></div></div>
+    <div class="cl-row"><span class="cl-label">Risque de recyclage :</span><div class="cl-checks"><select class="status-select" data-alert="Oui"><option></option><option>Oui</option><option>Non</option></select></div></div>
+    <div class="cl-row"><span class="cl-label">Groupe gainé :</span><div class="cl-checks"><select class="status-select"><option></option><option>Oui</option><option>Non</option></select></div></div>
+    <div class="cl-row"><span class="cl-label">Emplacement :</span><div class="cl-checks"><select class="status-select"><option></option><option>Mur</option><option>Toiture</option><option>Sol</option></select></div></div>
+  </div>
+
+  <!-- CHECKLIST FRIGORIFIQUE -->
+  <div class="block">
+    <div class="section-title">Check-List Frigorifique</div>
+    <div class="frigo-row">
+      <span class="frigo-cat">Réseau frigo</span>
+      <span class="frigo-desc">Flux d'azote pendant les brasures :</span>
+      <div class="frigo-checks"><select class="status-select" data-alert="Non conforme"><option>Non concerné</option><option>Conforme</option><option>Non conforme</option></select></div>
+    </div>
+    <div class="frigo-row">
+      <span class="frigo-cat"></span>
+      <span class="frigo-desc">Conforme au synoptique :</span>
+      <div class="frigo-checks"><select class="status-select" data-alert="Non conforme"><option></option><option>Conforme</option><option>Non conforme</option></select></div>
+    </div>
+    <div class="frigo-row">
+      <span class="frigo-cat"></span>
+      <span class="frigo-desc">Conformité réseau frigo :</span>
+      <div class="frigo-checks"><select class="status-select" data-alert="Non conforme"><option></option><option>Conforme</option><option>Non conforme</option></select></div>
+    </div>
+    <div class="frigo-row">
+      <span class="frigo-cat">Charge frigo</span>
+      <div class="frigo-inline">
+        <div class="frigo-field"><span>Appoint :</span><input type="text" class="form-input" style="width:40px"> kg</div>
+        <div class="frigo-field"><span>Total :</span><input type="text" class="form-input" style="width:40px"> kg</div>
+      </div>
+    </div>
+    <div class="frigo-row">
+      <span class="frigo-cat">Mise sous pression d'azote</span>
+      <div class="frigo-inline">
+        <div class="frigo-field"><span>Temps :</span><input type="text" class="form-input" style="width:120px"></div>
+        <div class="frigo-field"><span>Pression :</span><input type="text" class="form-input" style="width:40px"> bar</div>
+      </div>
+    </div>
+    <div class="frigo-row">
+      <span class="frigo-cat">Tirage au vide</span>
+      <div class="frigo-inline">
+        <span>Valeur absolue du vide (vacuomètre) :</span>
+        <input type="text" class="form-input" style="width:60px">
+        <select class="status-select" style="width:80px;"><option value=""></option><option>Microns</option><option>mbar</option><option>Torr</option><option>Pa</option></select>
+      </div>
+    </div>
+    <div class="frigo-row">
+      <span class="frigo-cat">Déshydrateur</span>
+      <div class="frigo-inline">
+        <span>Installé :</span><select id="installeSelect" class="status-select" onchange="toggleDoubleFlux()"><option>Non</option><option>Oui</option></select><span id="doubleFluxZone"><span>Double-flux :</span><select class="status-select double-flux-select"data-alert="Non"><option>Oui</option><option>Non</option></select></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V3.0
+  </div>
+</div>
+
+<!-- ============================================================ PAGE 2 ============================================================ -->
+<div class="page" id="page2">
+  <div class="page-header">
+    <div class="page-header-title"><h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1></div>
+    <div class="hitachi-logo"><span class="logo-text">BOSCH</span><span class="logo-sub">Cooling &amp; Heating</span></div>
+  </div>
+
+  <!-- CHECK-LIST ÉLECTRIQUE -->
+  <div class="block">
+    <div class="section-title">Check-List Électrique</div>
+    <div class="sub-section-title">Unité(s) Extérieure(s)</div>
+    <table class="checklist-elec-ue">
+      <thead>
+        <tr>
+          <th style="text-align:left"></th><th>Maître</th><th class="p2-escl1">Esclave 1</th><th class="p2-escl2">Esclave 2</th><th class="p2-escl3">Esclave 3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+
+    <td class="label-col">
+        Calibre disjoncteur :
+    </td>
+
+    <td>
+        <div class="input-unit">
+            <input type="text" id="disjMaitre">
+            <span class="unite">A</span>
+            <span id="croixMaitre"
+                  class="alerte-triangle">⚠</span>
+        </div>
+    </td>
+
+    <td class="p2-escl1">
+        <div class="input-unit">
+            <input type="text" id="disjEscl1">
+            <span class="unite">A</span>
+            <span id="croixEscl1"
+                  class="alerte-triangle">⚠</span>
+        </div>
+    </td>
+
+    <td class="p2-escl2">
+        <div class="input-unit">
+            <input type="text" id="disjEscl2">
+            <span class="unite">A</span>
+            <span id="croixEscl2"
+                  class="alerte-triangle">⚠</span>
+        </div>
+    </td>
+
+    <td class="p2-escl3">
+        <div class="input-unit">
+            <input type="text" id="disjEscl3">
+            <span class="unite">A</span>
+            <span id="croixEscl3"
+                  class="alerte-triangle">⚠</span>
+        </div>
+    </td>
+
+</tr>
+        <tr class="ligne-intensite-max">
+          <td class="label-col" style="color:var(--red);font-weight:700">Intensité maximale :</td>
+          <td>
+    <div class="input-unit">
+        <input type="text"
+               id="intensiteMaitre"
+               class="intensite-max"
+               readonly>
+        <span class="unite">A</span>
+        <span class="alerte-triangle"></span>
+    </div>
+</td>
+
+<td class="p2-escl1">
+    <div class="input-unit">
+        <input type="text"
+               id="intensiteEscl1"
+               class="intensite-max"
+               readonly>
+        <span class="unite">A</span>
+        <span class="alerte-triangle"></span>
+    </div>
+</td>
+
+<td class="p2-escl2">
+    <div class="input-unit">
+        <input type="text"
+               id="intensiteEscl2"
+               class="intensite-max"
+               readonly>
+        <span class="unite">A</span>
+        <span class="alerte-triangle"></span>
+    </div>
+</td>
+
+<td class="p2-escl3">
+    <div class="input-unit">
+        <input type="text"
+               id="intensiteEscl3"
+               class="intensite-max"
+               readonly>
+        <span class="unite">A</span>
+        <span class="alerte-triangle"></span>
+    </div>
+</td>
+        </tr>
+        <tr>
+          <td class="label-col">Calibre différentiel :</td>
+          <td><div class="input-unit"><input type="text" id="diffMaitre"><span class="unite">mA</span><span id="alertDiffMaitre" class="alerte-triangle">⚠</span></div></td><td class="p2-escl1"><div class="input-unit"><input type="text" id="diffEscl1"><span class="unite">mA</span><span id="alertDiffEscl1" class="alerte-triangle">⚠</span></div></td><td class="p2-escl2"><div class="input-unit"><input type="text" id="diffEscl2"><span class="unite">mA</span><span id="alertDiffEscl2" class="alerte-triangle">⚠</span></div></td><td class="p2-escl3"><div class="input-unit"><input type="text" id="diffEscl3"><span class="unite">mA</span><span id="alertDiffEscl3" class="alerte-triangle">⚠</span></div></td>
+        </tr>
+        <tr>
+          <td class="label-col">Section alimentation :</td>
+          <td><div class="input-unit"><input type="text"><span class="unite">mm²</span><span class="alerte-triangle"></div></td><td class="p2-escl1"><div class="input-unit"><input type="text"><span class="unite">mm²</span><span class="alerte-triangle"></div></td><td class="p2-escl2"><div class="input-unit"><input type="text"><span class="unite">mm²</span><span class="alerte-triangle"></div></td><td class="p2-escl3"><div class="input-unit"><input type="text"><span class="unite">mm²</span><span class="alerte-triangle"></div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="padding:2px 6px; font-size:9px; color:var(--red); font-style:italic">(*) En mode chauffage élevé</div>
+    <div class="sub-section-title">Unité(s) Intérieure(s)</div>
+    <div class="ui-elec-ligne">
+      <div class="frigo-field"><span style="font-weight:700">Calibre disjoncteur :</span><input type="text" class="form-input" style="width:50px"> A</div>
+      <div class="frigo-field"><span style="font-weight:700">Calibre différentiel :</span><input type="text" id="diffUI" class="form-input" style="width:50px"> mA<span id="alertDiffUI" class="alerte-triangle">⚠</span></div>
+      <div class="frigo-field"><span style="font-weight:700">Section alimentation :</span><input type="text" class="form-input" style="width:50px"> mm²</div>
+    </div>
+    <div class="sub-section-title">Bus de Communication</div>
+    <div style="padding:3px 6px;">
+      <div class="bus-row">
+        <span class="label">Type de câble :</span>
+
+        <select id="typeCable"
+                class="status-select" data-alert="Autre"
+                onchange="toggleAutreCable()">
+	    <option></option>
+            <option value="LiYCY">LiYCY</option>
+            <option value="Autre">Autre</option>
+        </select>
+
+        <input id="autreCable"
+               type="text"
+               class="form-input"
+               style="flex:1;display:none;">
+      </div>
+      <div class="bus-row">
+        <span class="label">
+          Tresse de masse raccordée en un seul point sur UE :
+        </span>
+
+       <select class="status-select"
+                data-alert="Non conforme">
+		<option></option>
+           	<option>Conforme</option>
+           	<option>Non conforme</option>
+       </select>
+     </div>
+      <div class="bus-row">
+        <span class="label">Section :</span><input type="text" style="width:45px"> mm²
+        &nbsp; <span class="label">Longueur :</span><input type="text" style="width:55px"> m
+      </div>
+      <div class="bus-row">
+        <span class="label">Valeur du bus sur UE :</span><input type="text" style="width:55px"> Ω
+        &nbsp; <span class="label">Valeur du bus sur la dernière UI :</span><input type="text" style="width:55px"> Ω
+      </div>
+    </div>
+  </div>
+
+  <!-- RELEVÉS ÉLECTRIQUES -->
+  <div class="block">
+    <div class="section-title">Relevé(s) Électrique(s)</div>
+    <div class="releves-grid">
+      <div class="releves-sub">
+        <div class="sub-section-title">Tension à vide</div>
+        <table>
+          <thead><tr><th></th><th>Maître</th><th class="p2-escl1">Escl. 1</th><th class="p2-escl2">Escl. 2</th><th class="p2-escl3">Escl. 3</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="label-col">L1/L2</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+            <tr><td class="label-col">L1/L3</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+            <tr><td class="label-col">L2/L3</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+            <tr><td class="label-col">L1/N</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+            <tr><td class="label-col">T/N</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="sub-section-title">Tension en charge</div>
+        <table>
+          <thead><tr><th></th><th>Maître</th><th class="p2-escl1">Escl. 1</th><th class="p2-escl2">Escl. 2</th><th class="p2-escl3">Escl. 3</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="label-col">L1/L2</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+            <tr><td class="label-col">L1/L3</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+            <tr><td class="label-col">L2/L3</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+            <tr><td class="label-col">L1/N</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+            <tr><td class="label-col">T/N</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>V</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sub-section-title">Intensité en charge</div>
+    <table class="intensite-charge-table">
+      <thead><tr><th></th><th>Maître</th><th class="p2-escl1">Esclave 1</th><th class="p2-escl2">Esclave 2</th><th class="p2-escl3">Esclave 3</th><th></th></tr></thead>
+      <tbody>
+        <tr><td class="label-col">L1</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>A</td></tr>
+        <tr><td class="label-col">L2</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>A</td></tr>
+        <tr><td class="label-col">L3</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>A</td></tr>
+        <tr><td class="label-col">N</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td><td>A</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- RELEVÉS UE À L'ARRÊT -->
+  <div class="block">
+    <div class="section-title">Relevés Unité(s) Extérieure(s) à l'arrêt</div>
+    <div style="font-size:10px; text-align:center; background:#f0f0f0; padding:2px; font-style:italic">Vannes unité(s) extérieure(s) encore fermée(s) et juste avant le démarrage</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:left">Description</th><th>Code</th><th>Maître</th><th class="p2-escl1">Esclave 1</th><th class="p2-escl2">Esclave 2</th><th class="p2-escl3">Esclave 3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="label-col">Puissance totale groupes extérieurs connectés</td><td style="font-style:italic">CA</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Puissance totale des unités intérieures connectées</td><td style="font-style:italic">(i)CP</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Nombre total d'unités intérieures connectées</td><td style="font-style:italic">(i)AA</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Cycle frigorifique</td><td style="font-style:italic">GA</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Pression HP</td><td style="font-style:italic">Pd</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Pression BP</td><td style="font-style:italic">PS</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température extérieure</td><td style="font-style:italic">To</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température refoulement MC1</td><td style="font-style:italic">Td</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température refoulement MC2</td><td style="font-style:italic">Td</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température liquide 1</td><td style="font-style:italic">TE</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température liquide 2</td><td style="font-style:italic">TE</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température gaz</td><td style="font-style:italic">TG</td><td><input type="text"></td><td class="p2-escl1"><input type="text"></td><td class="p2-escl2"><input type="text"></td><td class="p2-escl3"><input type="text"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V3.0
+  </div>
+</div>
+
+<!-- ============================================================ PAGE 3 ============================================================ -->
+<div class="page" id="page3">
+  <div class="page-header">
+    <div class="page-header-title"><h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1></div>
+    <div class="hitachi-logo"><span class="logo-text">BOSCH</span><span class="logo-sub">Cooling &amp; Heating</span></div>
+  </div>
+
+  <!-- RÉGLAGES SWITCHS -->
+  <script>function toggleDoubleFlux(){var s=document.getElementById("installeSelect");var z=document.getElementById("doubleFluxZone");if(s&&z){z.style.display=s.value==="Oui"?"inline":"none";}}document.addEventListener("DOMContentLoaded",toggleDoubleFlux);
+    // ===== CHOIX PHOTO COMPATIBLE iPHONE / ANDROID =====
+// Le simple attribut force la caméra sur Android et
+// empêche l'utilisateur d'obtenir systématiquement le choix Galerie/Caméra.
+// On propose donc explicitement les deux sources.
+let photoChooserTarget = null;
+
+function openPhotoChooser(inputId) {
+    photoChooserTarget = inputId;
+    const modal = document.getElementById('photo-source-modal');
+    if (modal) modal.classList.add('visible');
+}
+
+function closePhotoChooser() {
+    photoChooserTarget = null;
+    const modal = document.getElementById('photo-source-modal');
+    if (modal) modal.classList.remove('visible');
+}
+
+function choosePhotoSource(source) {
+    const inputId = photoChooserTarget;
+    if (!inputId) return;
+
+    const input = document.getElementById(inputId);
+    if (!input) {
+        closePhotoChooser();
+        return;
+    }
+
+    // Réinitialise le fichier précédent afin que le même fichier puisse
+    // être sélectionné à nouveau.
+    input.value = '';
+
+    if (source === 'camera') {
+        input.setAttribute('capture', 'environment');
+        input.removeAttribute('multiple');
+    } else {
+        input.removeAttribute('capture');
+        if (inputId === 'photo-add-input') {
+            input.setAttribute('multiple', '');
+        } else {
+            input.removeAttribute('multiple');
+        }
+    }
+
+    closePhotoChooser();
+
+    // Le click reste directement déclenché par l'action de l'utilisateur
+    // sur le bouton du sélecteur, ce qui est compatible avec iOS/Android.
+    input.click();
+}
+
+function handlePhotoUpload(input, previewId) {
+
+    const file = input.files[0];
+
+    if (!file) return;
+
+    const preview =
+        document.getElementById(previewId);
+
+    const reader =
+        new FileReader();
+
+    reader.onload = function(e) {
+
+        const img =
+            new Image();
+
+        img.onload = function() {
+
+            const canvas =
+                document.createElement("canvas");
+
+            let width =
+                img.width;
+
+            let height =
+                img.height;
+
+            const maxWidth = 1600;
+
+            if(width > maxWidth){
+
+                height =
+                    height *
+                    (maxWidth / width);
+
+                width =
+                    maxWidth;
+            }
+
+            canvas.width =
+                width;
+
+            canvas.height =
+                height;
+
+            const ctx =
+                canvas.getContext("2d");
+
+            ctx.drawImage(
+                img,
+                0,
+                0,
+                width,
+                height
+            );
+
+            const compressed =
+                canvas.toDataURL(
+                    "image/jpeg",
+                    0.75
+                );
+
+            preview.src =
+                compressed;
+
+            preview.style.display =
+                "block";
+
+            photosSauvegardees[
+                previewId
+            ] = compressed;
+        };
+
+        img.src =
+            e.target.result;
+    };
+
+    reader.readAsDataURL(file);
+}
+  </script>
+
+  <!-- GROUPE MAÎTRE -->
+  <div class="block" style="margin-bottom:2px">
+    <div class="section-title">Réglages Switchs Groupe Maître</div>
+    <div class="switch-grid">
+      <div class="switch-cell" style="border-right:1px solid var(--border)">
+        <span class="switch-cell-label">Photo switch carte PCB</span>
+        <img id="pcb-maitre" class="switch-preview" alt="Photo PCB Maître">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-pcb-maitre')" >📷 Photo</button>
+        <input type="file" id="file-pcb-maitre" accept="image/*" onchange="handlePhotoUpload(this,'pcb-maitre')">
+      </div>
+      <div class="switch-cell">
+        <span class="switch-cell-label">Photo switch carte inverter</span>
+        <img id="inv-maitre" class="switch-preview" alt="Photo Inverter Maître">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-inv-maitre')" >📷 Photo</button>
+        <input type="file" id="file-inv-maitre" accept="image/*" onchange="handlePhotoUpload(this,'inv-maitre')">
+      </div>
+      <div class="switch-cell">
+        <span class="switch-cell-label">Photo carte inverter 2</span>
+        <img id="inv-maitre-2" class="switch-preview" alt="Photo Inverter 2 Maître">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-inv-maitre-2')" >📷 Photo</button>
+        <input type="file" id="file-inv-maitre-2" accept="image/*" onchange="handlePhotoUpload(this,'inv-maitre-2')">
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUPE ESCLAVE 1 -->
+  <div class="block p3-escl1"
+     style="margin-bottom:2px">
+
+    <div class="section-title">
+        Réglages Switchs Groupe Esclave 1
+   </div>
+    <div class="switch-grid">
+      <div class="switch-cell" style="border-right:1px solid var(--border)">
+        <span class="switch-cell-label">Photo switch carte PCB</span>
+        <img id="pcb-escl1" class="switch-preview" alt="Photo PCB Esclave 1">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-pcb-escl1')" >📷 Photo</button>
+        <input type="file" id="file-pcb-escl1" accept="image/*" onchange="handlePhotoUpload(this,'pcb-escl1')">
+      </div>
+      <div class="switch-cell">
+        <span class="switch-cell-label">Photo switch carte inverter</span>
+        <img id="inv-escl1" class="switch-preview" alt="Photo Inverter Esclave 1">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-inv-escl1')" >📷 Photo</button>
+        <input type="file" id="file-inv-escl1" accept="image/*" onchange="handlePhotoUpload(this,'inv-escl1')">
+      </div>
+      <div class="switch-cell">
+        <span class="switch-cell-label">Photo carte inverter 2</span>
+        <img id="inv-escl1-2" class="switch-preview" alt="Photo Inverter 2 Esclave 1">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-inv-escl1-2')" >📷 Photo</button>
+        <input type="file" id="file-inv-escl1-2" accept="image/*" onchange="handlePhotoUpload(this,'inv-escl1-2')">
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUPE ESCLAVE 2 -->
+  <div class="block p3-escl2"
+     style="margin-bottom:2px">
+
+    <div class="section-title">
+        Réglages Switchs Groupe Esclave 2
+   </div>
+    <div class="switch-grid">
+      <div class="switch-cell" style="border-right:1px solid var(--border)">
+        <span class="switch-cell-label">Photo switch carte PCB</span>
+        <img id="pcb-escl2" class="switch-preview" alt="Photo PCB Esclave 2">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-pcb-escl2')" >📷 Photo</button>
+        <input type="file" id="file-pcb-escl2" accept="image/*" onchange="handlePhotoUpload(this,'pcb-escl2')">
+      </div>
+      <div class="switch-cell">
+        <span class="switch-cell-label">Photo switch carte inverter</span>
+        <img id="inv-escl2" class="switch-preview" alt="Photo Inverter Esclave 2">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-inv-escl2')" >📷 Photo</button>
+        <input type="file" id="file-inv-escl2" accept="image/*" onchange="handlePhotoUpload(this,'inv-escl2')">
+      </div>
+      <div class="switch-cell">
+        <span class="switch-cell-label">Photo carte inverter 2</span>
+        <img id="inv-escl2-2" class="switch-preview" alt="Photo Inverter 2 Esclave 2">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-inv-escl2-2')" >📷 Photo</button>
+        <input type="file" id="file-inv-escl2-2" accept="image/*" onchange="handlePhotoUpload(this,'inv-escl2-2')">
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUPE ESCLAVE 3 -->
+  <div class="block p3-escl3"
+     style="margin-bottom:2px">
+
+    <div class="section-title">
+        Réglages Switchs Groupe Esclave 3
+   </div>
+    <div class="switch-grid">
+      <div class="switch-cell" style="border-right:1px solid var(--border)">
+        <span class="switch-cell-label">Photo switch carte PCB</span>
+        <img id="pcb-escl3" class="switch-preview" alt="Photo PCB Esclave 3">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-pcb-escl3')" >📷 Photo</button>
+        <input type="file" id="file-pcb-escl3" accept="image/*" onchange="handlePhotoUpload(this,'pcb-escl3')">
+      </div>
+      <div class="switch-cell">
+        <span class="switch-cell-label">Photo switch carte inverter</span>
+        <img id="inv-escl3" class="switch-preview" alt="Photo Inverter Esclave 3">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-inv-escl3')" >📷 Photo</button>
+        <input type="file" id="file-inv-escl3" accept="image/*" onchange="handlePhotoUpload(this,'inv-escl3')">
+      </div>
+      <div class="switch-cell">
+        <span class="switch-cell-label">Photo carte inverter 2</span>
+        <img id="inv-escl3-2" class="switch-preview" alt="Photo Inverter 2 Esclave 3">
+        <button class="switch-upload-btn no-print" onclick="openPhotoChooser('file-inv-escl3-2')" >📷 Photo</button>
+        <input type="file" id="file-inv-escl3-2" accept="image/*" onchange="handlePhotoUpload(this,'inv-escl3-2')">
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V3.0
+  </div>
+</div>
+
+<!-- ============================================================ PAGE 4 ============================================================ -->
+<div class="page" id="page4">
+  <div class="page-header">
+    <div class="page-header-title"><h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1></div>
+    <div class="hitachi-logo"><span class="logo-text">BOSCH</span><span class="logo-sub">Cooling &amp; Heating</span></div>
+  </div>
+
+  <!-- RÉGLAGE FONCTIONS OPTIONNELLES UE -->
+  <div class="block">
+    <div class="section-title">Réglage Fonctions Optionnelles UE</div>
+    <table class="opt-table">
+      <thead><tr><th style="width:20%; text-align:center;">Fonction</th><th style="width:60%; text-align:center;">Description</th><th style="width:20%; text-align:center;">Réglage</th></tr></thead>
+      <tbody>
+        <tr><td><input type="text" style="width:100%"></td><td><input type="text" class="force-maj" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+        <tr><td><input type="text" style="width:100%"></td><td><input type="text" class="force-maj" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+        <tr><td><input type="text" style="width:100%"></td><td><input type="text" class="force-maj" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+        <tr><td><input type="text" style="width:100%"></td><td><input type="text" class="force-maj" style="width:100%"></td><td><input type="text" style="width:100%"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- RÉGLAGE ENTRÉE/SORTIES UE -->
+  <div class="block">
+    <div class="section-title">Réglage Entrée/Sorties UE</div>
+    <table>
+      <thead><tr><th>i1</th><th>i2</th><th>i3</th><th>o1</th><th>o2</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><input type="text"></td>
+          <td><input type="text"></td>
+          <td><input type="text"></td>
+          <td><input type="text"></td>
+          <td><input type="text"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- RELEVÉS DE FONCTIONNEMENT MODE TEST -->
+  <div class="block">
+    <div class="section-title">Relevés de Fonctionnement Mode Test</div>
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2" style="text-align:left; width:33%">Description</th>
+          <th rowspan="2" style="width:7%">Afficheur</th>
+          <th id="froidTitle"
+    colspan="4"
+    class="froid-header">
+    FROID
+</th>
+
+<th id="chaudTitle"
+    colspan="4"
+    class="chaud-header">
+    CHAUD
+</th>
+        </tr>
+        <tr>
+          <th class="froid-header">Maître</th>
+<th class="froid-header p4-escl1">Escl.1</th>
+<th class="froid-header p4-escl2">Escl.2</th>
+<th class="froid-header p4-escl3">Escl.3</th>
+
+<th class="chaud-header">Maître</th>
+<th class="chaud-header p4-escl1">Escl.1</th>
+<th class="chaud-header p4-escl2">Escl.2</th>
+<th class="chaud-header p4-escl3">Escl.3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="label-col">Puissance UI en fonctionnement</td><td style="font-style:italic">oP</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Fréquence fonctionnement MC1</td><td style="font-style:italic">H1</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Fréquence fonctionnement MC2</td><td style="font-style:italic">H2</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Ouverture détendeur UE MV1</td><td style="font-style:italic">E1/Eo</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Ouverture détendeur UE MV2</td><td style="font-style:italic">E2</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Ouverture détendeur UE MVB</td><td style="font-style:italic">Eb</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Pression HP <em>(au mano si indisponible)</em></td><td style="font-style:italic">Pd</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Pression BP <em>(au mano si indisponible)</em></td><td style="font-style:italic">PS</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température extérieure</td><td style="font-style:italic">To</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température refoulement MC1</td><td style="font-style:italic">Td</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température refoulement MC2</td><td style="font-style:italic">Td</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température liquide 1</td><td style="font-style:italic">TE</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température liquide 2</td><td style="font-style:italic">TE</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température gaz</td><td style="font-style:italic">TG</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température liquide vanne de service</td><td style="font-style:italic">TC</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Température sous-refroidissement</td><td style="font-style:italic">TS</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Temps de fonctionnement MC1</td><td style="font-style:italic">UJ</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+        <tr><td class="label-col">Temps de fonctionnement MC2</td><td style="font-style:italic">UJ</td>
+          <td class="froid-col"><input type="text"></td><td class="froid-col p4-escl1"><input type="text"></td><td class="froid-col p4-escl2"><input type="text"></td><td class="froid-col p4-escl3"><input type="text"></td>
+          <td class="chaud-col"><input type="text"></td><td class="chaud-col p4-escl1"><input type="text"></td><td class="chaud-col p4-escl2"><input type="text"></td><td class="chaud-col p4-escl3"><input type="text"></td></tr>
+      </tbody>
+    </table>
+    <div style="padding:10px 6px;border-top:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;">
+<div style="font-weight:700;margin-top:12px;">Sur l'unité intérieure la plus éloignée :</div>
+<table style="width:340px;border-collapse:collapse;">
+<tr>
+<td style="border:none;background:transparent"></td>
+<td class="froid-header" style="width:60px">FROID</td>
+<td class="chaud-header" style="width:60px">CHAUD</td>
+<td style="border:none;background:transparent;width:30px"></td>
+</tr>
+<tr>
+<td class="label-col" style="border:none;background:transparent;text-align:right;padding-right:8px;">Température de reprise :</td>
+<td class="froid-col"><input type="text"></td>
+<td class="chaud-col"><input type="text"></td>
+<td style="border:none;background:transparent">°C</td>
+</tr>
+<tr>
+<td class="label-col" style="border:none;background:transparent;text-align:right;padding-right:8px;">Température de soufflage :</td>
+<td class="froid-col"><input type="text"></td>
+<td class="chaud-col"><input type="text"></td>
+<td style="border:none;background:transparent">°C</td>
+</tr>
+</table>
+</div>
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V3.0
+  </div>
+</div>
+
+<!-- ============================================================ PAGE 5 ============================================================ -->
+<div class="page" id="page5">
+  <div class="page-header">
+    <div class="page-header-title"><h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1></div>
+    <div class="hitachi-logo"><span class="logo-text">BOSCH</span><span class="logo-sub">Cooling &amp; Heating</span></div>
+  </div>
+
+  <div class="warning-box">
+    <span class="warning-icon">⚠️</span>
+    <span class="warning-text">Le réglage des fonctions optionnelles effectué lors de la mise en service se fait à la demande de l'installateur. Il est de sa responsabilité d'ajuster le réglage de celles-ci par la suite si cela s'avère nécessaire.</span>
+  </div>
+
+  <!-- RÉGLAGE FONCTIONS OPTIONNELLES UI -->
+  <div class="block">
+    <div class="section-title">Réglage Fonctions Optionnelles UI</div>
+    <div style="overflow-x:auto">
+      <table id="ui-opt-table">
+        <thead>
+          <tr>
+            <th style="min-width:28px">N°UI</th>
+            <th>b1</th><th>b4</th><th>C5</th><th>C8</th><th>Cd</th><th>CE</th><th>d3</th><th>Jc</th>
+            <th><input type="text" maxlength="2" size="2"></th><th><input type="text" maxlength="2" size="2"></th><th><input type="text" maxlength="2" size="2"></th><th><input type="text" maxlength="2" size="2"></th><th><input type="text" maxlength="2" size="2"></th><th><input type="text" maxlength="2" size="2"></th><th><input type="text" maxlength="2" size="2"></th><th><input type="text" maxlength="2" size="2"></th>
+          </tr>
+        </thead>
+        <tbody id="ui-opt-body">
+          <tr>
+            <td style="font-style:italic; background:var(--gray-cell); text-align:center">Toutes</td>
+            <td><input type="text" id="uiOptToutesCol1"></td><td><input type="text" id="uiOptToutesCol2"></td><td><input type="text" id="uiOptToutesCol3"></td><td><input type="text" id="uiOptToutesCol4"></td>
+            <td><input type="text" id="uiOptToutesCol5"></td><td><input type="text" id="uiOptToutesCol6"></td><td><input type="text" id="uiOptToutesCol7"></td><td><input type="text" id="uiOptToutesCol8"></td>
+            <td><input type="text" id="uiOptToutesCol9"></td><td><input type="text" id="uiOptToutesCol10"></td><td><input type="text" id="uiOptToutesCol11"></td><td><input type="text" id="uiOptToutesCol12"></td>
+            <td><input type="text" id="uiOptToutesCol13"></td><td><input type="text" id="uiOptToutesCol14"></td><td><input type="text" id="uiOptToutesCol15"></td><td><input type="text" id="uiOptToutesCol16"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <button class="btn no-print" style="margin:4px 6px; font-size:10px; padding:4px 10px;" onclick="addUIRow()">+ Ajouter une ligne UI</button>
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V3.0
+  </div>
+</div>
+
+<!-- ============================================================ PAGE 6 ============================================================ -->
+<div class="page" id="page6">
+  <div class="page-header">
+    <div class="page-header-title"><h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1></div>
+    <div class="hitachi-logo"><span class="logo-text">BOSCH</span><span class="logo-sub">Cooling &amp; Heating</span></div>
+  </div>
+
+  <!-- RELEVÉS UI BOITIERS CH -->
+  <div class="block">
+    <div class="section-title">Implantation des UI / Boitiers CH</div>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:40px">UI</th>
+                <th>Modèle UI</th>
+                <th>Emplacement</th>
+                <th>Groupement UI</th>
+                <th>Boitier CH</th>
+            </tr>
+        </thead>
+        <tbody id="ui-ch-body">
+        </tbody>
+     </table>
+
+     <button
+         class="btn no-print"
+         style="margin:4px 6px; font-size:10px; padding:4px 10px;"
+         onclick="addUIChRow()">
+         + Ajouter une ligne UI
+     </button>
+
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V3.0
+  </div>
+</div>
+
+<div id="ui-ch-print-pages"></div>
+
+<!-- ============================================================ PAGE 7 ============================================================ -->
+<div class="page" id="page7">
+  <div class="page-header">
+    <div class="page-header-title"><h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1></div>
+    <div class="hitachi-logo"><span class="logo-text">BOSCH</span><span class="logo-sub">Cooling &amp; Heating</span></div>
+  </div>
+
+  <!-- REMARQUES -->
+  <div class="block">
+    <div class="section-title">Remarques</div>
+    <textarea class="remarks-area" id="remarques-editor" placeholder="Saisir vos remarques ici…"></textarea><div style="font-size:9px;padding:4px">La pagination sera générée automatiquement à l'impression.</div>
+  </div>
+
+  <!-- HEURES ET SIGNATURES -->
+  <div class="completion-block" id="completion-block">
+    <div class="section-title">Validation de l'intervention</div>
+    <div class="completion-times">
+      <div class="completion-time-cell"><label for="heure-arrivee">Heure d'arrivée :</label><input type="time" id="heure-arrivee" class="form-input"></div>
+      <div class="completion-time-cell"><label for="heure-depart">Heure de départ :</label><input type="time" id="heure-depart" class="form-input"></div>
+    </div>
+    <div class="signatures-grid">
+      <div class="signature-cell">
+        <span class="signature-label">Signature intervenant</span>
+        <div class="signature-pad-wrap"><canvas id="signature-intervenant" class="signature-pad" aria-label="Signature intervenant"></canvas><button type="button" class="signature-clear no-print" onclick="clearSignature('signature-intervenant')">Effacer</button></div>
+      </div>
+      <div class="signature-cell">
+        <span class="signature-label">Signature installateur</span>
+        <div class="signature-pad-wrap"><canvas id="signature-installateur" class="signature-pad" aria-label="Signature installateur"></canvas><button type="button" class="signature-clear no-print" onclick="clearSignature('signature-installateur')">Effacer</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVERTISSEMENT VISIONNEUSE INTÉGRÉE (Teams / OneDrive / GED...) -->
+  <div id="viewer-warning" class="no-print" style="display:none; background:#fff4e5; border:1px solid #e0a94c; border-radius:3px; padding:8px 10px; margin-bottom:8px; font-size:11px; color:#5c3d00;">
+    ⚠️ Ce rapport semble ouvert dans un aperçu intégré (Teams, OneDrive, appli de GED…) plutôt que dans Safari.
+    Dans ce cas, les boutons <strong>Imprimer</strong> et <strong>Enregistrer</strong> peuvent ne pas fonctionner.
+    <div style="margin-top:6px;">
+      <button type="button" class="btn" style="font-size:11px;padding:4px 8px;" onclick="tryOpenInSafari()">Ouvrir dans Safari</button>
+      <span style="display:inline-block;margin-left:6px;">Si rien ne se passe, utilisez le menu « … » de l'application puis « Ouvrir dans le navigateur ».</span>
+    </div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar no-print">
+    <button class="btn btn-menu-retour" onclick="showMenu()">
+      <span class="btn-icon">🏠</span> Retour MENU
+    </button>
+
+    <button class="btn" onclick="openPhotoChooser('photo-add-input')">
+      <span class="btn-icon">📷</span> Ajouter une photo
+    </button>
+    <input type="file" id="photo-add-input" class="photo-file-input" accept="image/*" multiple onchange="addPhotoPage(this)">
+
+    <button class="btn" onclick="printReport()">
+      <span class="btn-icon">🖨️</span> Imprimer / Exporter PDF
+    </button>
+
+    <button class="btn" onclick="saveReport()">
+        <span class="btn-icon">💾</span>
+        Enregistrer le rapport
+     </button>
+     
+     <button class="btn"
+        onclick="document.getElementById('openReport').click()" >
+        <span class="btn-icon">📂</span>
+        Ouvrir un rapport
+     </button>
+
+     <input type="file"
+       id="openReport"
+       accept=".json"
+       style="display:none"
+       onchange="loadReport(this)">
+
+     <button class="btn" id="btnInstallApp" onclick="installApp()" style="display:none">
+        <span class="btn-icon">⬇️</span>
+        Installer l'application
+     </button>
+
+     <span id="offlineIndicator" style="display:none; margin-left:8px; padding:4px 8px; border-radius:3px; background:#555; color:#fff; font-size:10px; font-weight:700; vertical-align:middle;">
+        Hors ligne
+     </span>
+      </div>
+
+  <div style="margin-top:8px; font-size:10px; text-align:center; font-style:italic; color:#555">
+    Ce rapport a pour but de vérifier le bon fonctionnement de l'installation, celui-ci ne peut pas se substituer aux notices d'installation ou au catalogue technique du matériel. Pour plus de précisions, merci de les consulter.
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V3.0
+  </div>
+</div>
+
+<!-- ===== SÉLECTEUR DE SOURCE PHOTO ===== -->
+<div id="photo-source-modal" class="photo-source-modal no-print" role="dialog" aria-modal="true" aria-label="Choisir la source de la photo">
+  <div class="photo-source-card">
+    <div class="photo-source-title">Ajouter une photo</div>
+    <button type="button" class="btn photo-source-btn" onclick="choosePhotoSource('camera')">📷 Prendre une photo</button>
+    <button type="button" class="btn photo-source-btn" onclick="choosePhotoSource('gallery')">🖼️ Choisir dans la galerie</button>
+    <button type="button" class="photo-source-cancel" onclick="closePhotoChooser()">Annuler</button>
+  </div>
+</div>
+
+<!-- ============================================================ PHOTO PAGES (dynamic) ============================================================ -->
+<div id="remarks-render-pages"></div><div id="photo-pages"></div>
+
+</div>
+<!-- ============================================================ /RAPPORT : DRV / UTOPIA ============================================================ -->
+
+<script>
+
+/* ===== NAVIGATION MENU / RAPPORTS ===== */
+const REPORTS = {
+  'drv-utopia': { title: 'Rapport DRV/Utopia',        viewId: 'view-report-drv-utopia', available: true },
+  'pac':        { title: 'Rapport PAC',                viewId: null, available: false },
+  'pv':         { title: 'Procès Verbal',              viewId: null, available: false },
+  'chiller-m':  { title: 'Rapport Chiller M',          viewId: null, available: false },
+  'chiller-l':  { title: 'Rapport Chiller L',          viewId: null, available: false },
+  'gtb':        { title: 'Rapport GTB',                viewId: null, available: false },
+  'csnet2':     { title: 'Rapport CSNET MANAGER 2',    viewId: null, available: false },
+  'dxkit':      { title: 'Rapport DX-KIT',             viewId: null, available: false }
+};
+
+function hideAllViews(){
+  document.querySelectorAll('.app-view').forEach(function(v){ v.classList.remove('active'); });
+}
+
+function showMenu(){
+  hideAllViews();
+  document.getElementById('view-menu').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function openReport(key){
+  const r = REPORTS[key];
+  if (!r || !r.available || !r.viewId){
+    alert((r ? r.title : 'Ce rapport') + " sera bientôt disponible.");
+    return;
+  }
+  hideAllViews();
+  document.getElementById(r.viewId).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+document.addEventListener('DOMContentLoaded', showMenu);
+
+document.addEventListener('input', function(e){
+
+    if(e.target.classList.contains('force-maj')){
+
+        e.target.value =
+            e.target.value.toUpperCase();
+
+    }
+
+});
+
+function toggleAutreCable(){
+ const s=document.getElementById('typeCable');
+ const f=document.getElementById('autreCable');
+ if(s&&f){f.style.display=s.value==='Autre'?'block':'none';}
+}
+ const photosSauvegardees = {};
+ let nbEsc = 0;
+
+ // ===== SIGNATURES TACTILES / SOURIS =====
+ const signaturePads = {};
+ function setupSignaturePad(id) {
+   const canvas=document.getElementById(id); if(!canvas || signaturePads[id]) return;
+   const ctx=canvas.getContext('2d');
+   const state={canvas,ctx,drawing:false,hasInk:false,lastX:0,lastY:0};
+   signaturePads[id]=state;
+   function resizeCanvas(preserve=true){
+     const previous=preserve&&state.hasInk?canvas.toDataURL('image/png'):null;
+     const rect=canvas.getBoundingClientRect(), dpr=Math.max(1,Math.min(window.devicePixelRatio||1,3));
+     canvas.width=Math.max(1,Math.round(rect.width*dpr)); canvas.height=Math.max(1,Math.round(rect.height*dpr));
+     ctx.setTransform(dpr,0,0,dpr,0,0); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=2; ctx.strokeStyle='#111';
+     if(previous){const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,rect.width,rect.height);state.hasInk=true;};img.src=previous;}
+   }
+   const point=e=>{const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
+   canvas.addEventListener('pointerdown',e=>{e.preventDefault();const p=point(e);state.drawing=true;state.hasInk=true;state.lastX=p.x;state.lastY=p.y;try{canvas.setPointerCapture(e.pointerId);}catch(_){}ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+.01,p.y+.01);ctx.stroke();},{passive:false});
+   canvas.addEventListener('pointermove',e=>{if(!state.drawing)return;e.preventDefault();const p=point(e);ctx.beginPath();ctx.moveTo(state.lastX,state.lastY);ctx.lineTo(p.x,p.y);ctx.stroke();state.lastX=p.x;state.lastY=p.y;},{passive:false});
+   const stop=e=>{if(!state.drawing)return;state.drawing=false;try{canvas.releasePointerCapture(e.pointerId);}catch(_){}};
+   canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);canvas.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')stop(e);});
+   resizeCanvas(false);window.addEventListener('resize',()=>resizeCanvas(true));
+ }
+ function clearSignature(id){const s=signaturePads[id];if(!s)return;const r=s.canvas.getBoundingClientRect();s.ctx.clearRect(0,0,r.width,r.height);s.hasInk=false;}
+ function signatureData(id){const s=signaturePads[id];return s&&s.hasInk?s.canvas.toDataURL('image/png'):'';}
+ function restoreSignature(id,dataUrl){const s=signaturePads[id];if(!s||!dataUrl)return;const img=new Image();img.onload=()=>{const r=s.canvas.getBoundingClientRect();s.ctx.clearRect(0,0,r.width,r.height);s.ctx.drawImage(img,0,0,r.width,r.height);s.hasInk=true;};img.src=dataUrl;}
+ function initSignatures(){setupSignaturePad('signature-intervenant');setupSignaturePad('signature-installateur');}
+ function saveSignatureData(data){data.signatureIntervenant=signatureData('signature-intervenant');data.signatureInstallateur=signatureData('signature-installateur');}
+ function restoreSignatureData(data){initSignatures();requestAnimationFrame(()=>{restoreSignature('signature-intervenant',data.signatureIntervenant||'');restoreSignature('signature-installateur',data.signatureInstallateur||'');});}
+ function getSignaturePrintImage(id){const data=signatureData(id);return data?`<img src="${data}" alt="Signature" style="display:block;width:100%;height:120px;object-fit:contain;">`:`<div style="height:75px;"></div>`;}
+ function makeCompletionPrintBlock(){
+   const arrivee=document.getElementById('heure-arrivee')?.value||'', depart=document.getElementById('heure-depart')?.value||'';
+   return `<div class="completion-block print-completion-block"><div class="section-title">Validation de l'intervention</div><div class="completion-times"><div class="completion-time-cell"><label>Heure d'arrivée :</label><span>${escapeHtml(arrivee)}</span></div><div class="completion-time-cell"><label>Heure de départ :</label><span>${escapeHtml(depart)}</span></div></div><div class="signatures-grid"><div class="signature-cell"><span class="signature-label">Signature intervenant</span><div class="signature-pad-wrap">${getSignaturePrintImage('signature-intervenant')}</div></div><div class="signature-cell"><span class="signature-label">Signature installateur</span><div class="signature-pad-wrap">${getSignaturePrintImage('signature-installateur')}</div></div></div></div>`;
+ }
+
+// ===== ENREGISTREMENT COMPATIBLE IOS / ANDROID / WINDOWS =====
+async function saveReport() {
+    let nomFichier = prompt("Nom du fichier :", "Rapport DRV - Nom chantier - jj.mm.aaaa");
+    if (!nomFichier) return;
+
+    // Nettoyage du nom de fichier
+    nomFichier = nomFichier.trim().replace(/[\\/:*?"<>|]/g, '_');
+    if (!nomFichier) return;
+
+    const data = {};
+
+    // Collecte des données des formulaires
+    document.querySelectorAll("input, textarea, select").forEach((el, index) => {
+        if (el.type === "file") return;
+        const key = el.id || ("field_" + index);
+        data[key] = el.value;
+    });
+
+    saveSignatureData(data);
+    data.photos = photosSauvegardees;
+    data.nbEsc = nbEsc;
+    data.photoPages = [];
+
+    document.querySelectorAll('#photo-pages .page').forEach(page => {
+        const img = page.querySelector('img');
+        const legende = page.querySelector('input');
+        if (img) {
+            data.photoPages.push({
+                image: img.src,
+                legende: legende ? legende.value : ''
+            });
+        }
+    });
+
+    try {
+        const jsonStr = JSON.stringify(data, null, 2);
+        const fileName = nomFichier + ".json";
+        const file = new File([jsonStr], fileName, { type: "application/json" });
+
+        // 1. Détection Web Share API (Méthode native, réservée à iOS/Safari)
+        // Sur Windows/Android, on utilise toujours le téléchargement direct
+        // ci-dessous : plus fiable, et évite une erreur "Permission denied"
+        // que certains navigateurs renvoient si le partage natif est déclenché
+        // après la boîte de dialogue du nom de fichier (activation utilisateur expirée).
+        const ua = navigator.userAgent || '';
+        const isIOSDevice = /iPad|iPhone|iPod/.test(ua);
+
+        if (isIOSDevice && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: nomFichier,
+                text: "Rapport d'assistance à la mise en service BOSCH"
+            });
+        } else {
+            // 2. Méthode classique (Windows, Android, macOS, etc.)
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            if (isLikelyEmbeddedViewer()) {
+                alert("L'enregistrement a échoué : ce rapport semble ouvert dans un aperçu intégré (Teams, OneDrive, appli de GED…) qui ne permet pas toujours l'enregistrement de fichiers.\n\nUtilisez le bouton « Ouvrir dans Safari » ci-dessus, ou le menu « … » de l'application, puis réessayez.");
+            } else {
+                alert("Erreur lors de l'enregistrement du rapport : " + err.message);
+            }
+        }
+    }
+}
+
+function loadFormData() {
+
+    // localStorage peut être bloqué (SecurityError) sur iOS lorsque le
+    // fichier est ouvert hors de Safari (Fichiers, Mail, WhatsApp, etc.).
+    // On protège donc chaque étape pour ne jamais bloquer le reste du script.
+    let saved = null;
+
+    try {
+        saved = localStorage.getItem('rapport_hitachi_v2');
+    } catch (err) {
+        return;
+    }
+
+    if (!saved) return;
+
+    let data;
+
+    try {
+        data = JSON.parse(saved);
+    } catch (err) {
+        return;
+    }
+
+    document.querySelectorAll(
+        'input, textarea, select'
+    ).forEach((el, index) => {
+
+        let key = el.id;
+
+        if (!key) {
+            key = 'field_' + index;
+        }
+
+        if(data[key] !== undefined) {
+            el.value = data[key];
+        }
+
+    });
+}
+
+function loadReport(input) {
+
+    const file =
+        input.files[0];
+
+    if (!file) return;
+
+    const reader =
+        new FileReader();
+
+    reader.onload =
+        function(e) {
+
+        const data =
+            JSON.parse(
+                e.target.result
+            );
+        nbEsc = data.nbEsc || 0;
+        synchroniserAffichageEsclaves();
+        ensureUIOptRows(data);
+        ensureUIChRows(data);
+        if(data.photoPages){
+
+    const container = document.getElementById('photo-pages');
+
+    container.innerHTML = '';
+
+    data.photoPages.forEach(p => {
+
+        const page = document.createElement('div');
+
+        page.className = 'page';
+
+        page.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-title">
+              <h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1>
+            </div>
+            <div class="hitachi-logo">
+              <span class="logo-text">BOSCH</span>
+              <span class="logo-sub">Cooling & Heating</span>
+            </div>
+          </div>
+
+          <div class="block" style="text-align:center; padding:8px">
+
+               <img src="${p.image}"
+                  style="max-width:100%; max-height:240mm; object-fit:contain; display:block; margin:0 auto;">
+
+               <input
+                   type="text"
+                   class="form-input"
+                   value="${p.legende || ''}"
+                   style="margin-top:6px; width:80%; text-align:center">
+
+           </div>
+
+          <div class="page-footer-info">
+            BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST | V3.0
+          </div>
+        `;
+
+        container.appendChild(page);
+
+    });
+if(data.photos){
+
+    Object.entries(data.photos)
+        .forEach(([id, src]) => {
+
+            const img =
+                document.getElementById(id);
+
+            if(img){
+
+                img.src = src;
+
+                img.style.display = "block";
+
+                photosSauvegardees[id] = src;
+            }
+        });
+}
+        }
+
+        document
+            .querySelectorAll(
+                "input, textarea, select"
+            )
+            .forEach((el, index) => {
+
+                if (
+                    el.type === "file"
+                ) {
+                    return;
+                }
+
+                const key =
+                    el.id ||
+                    ("field_" + index);
+
+                if (
+                    data[key] !== undefined
+                ) {
+                    el.value =
+                        data[key];
+                }
+            });
+
+        restoreSignatureData(data);
+
+        verifierDisjoncteur('disjMaitre', 'intensiteMaitre', 'croixMaitre');
+        verifierDisjoncteur('disjEscl1', 'intensiteEscl1', 'croixEscl1');
+        verifierDisjoncteur('disjEscl2', 'intensiteEscl2', 'croixEscl2');
+        verifierDisjoncteur('disjEscl3', 'intensiteEscl3', 'croixEscl3');
+        verifierDifferenciel('diffMaitre', 'alertDiffMaitre');
+        verifierDifferenciel('diffEscl1', 'alertDiffEscl1');
+        verifierDifferenciel('diffEscl2', 'alertDiffEscl2');
+        verifierDifferenciel('diffEscl3', 'alertDiffEscl3');
+        verifierDifferenciel('diffUI', 'alertDiffUI');
+
+        document
+            .querySelectorAll('select[data-alert]')
+            .forEach(select => majCouleur(select));
+
+        toggleDoubleFlux();
+        toggleAutreCable();
+
+        alert(
+            "Rapport chargé."
+        );
+    };
+
+    reader.readAsText(file);
+}
+
+  function synchroniserAffichageEsclaves(){
+    document
+        .querySelectorAll('.escl1,.p2-escl1,.p4-escl1')
+        .forEach(el => {
+            el.style.display =
+                nbEsc >= 1 ? 'table-cell' : 'none';
+        });
+
+    document
+        .querySelectorAll('.escl2,.p2-escl2,.p4-escl2')
+        .forEach(el => {
+            el.style.display =
+                nbEsc >= 2 ? 'table-cell' : 'none';
+        });
+
+    document
+        .querySelectorAll('.escl3,.p2-escl3,.p4-escl3')
+        .forEach(el => {
+            el.style.display =
+                nbEsc >= 3 ? 'table-cell' : 'none';
+        });
+
+    document
+        .querySelectorAll('.p3-escl1')
+        .forEach(el => {
+            el.style.display =
+                nbEsc >= 1 ? 'block' : 'none';
+        });
+
+    document
+        .querySelectorAll('.p3-escl2')
+        .forEach(el => {
+            el.style.display =
+                nbEsc >= 2 ? 'block' : 'none';
+        });
+
+    document
+        .querySelectorAll('.p3-escl3')
+        .forEach(el => {
+            el.style.display =
+                nbEsc >= 3 ? 'block' : 'none';
+        });
+
+    const btnAddEsclave =
+        document.getElementById('btnAddEsclave');
+
+    const btnRemoveEsclave =
+        document.getElementById('btnRemoveEsclave');
+
+    if(btnAddEsclave){
+        btnAddEsclave.style.display =
+            nbEsc >= 3 ? 'none' : 'inline-block';
+    }
+
+    if(btnRemoveEsclave){
+        btnRemoveEsclave.style.display =
+            nbEsc > 0 ? 'inline-block' : 'none';
+    }
+
+    const nbColonnes = 1 + nbEsc;
+
+    const froidTitle =
+        document.getElementById('froidTitle');
+
+    const chaudTitle =
+        document.getElementById('chaudTitle');
+
+    if(froidTitle){
+        froidTitle.colSpan = nbColonnes;
+    }
+
+    if(chaudTitle){
+        chaudTitle.colSpan = nbColonnes;
+    }
+}
+
+document.addEventListener(
+    'DOMContentLoaded',
+    loadFormData
+);
+
+
+function ajouterEsclave() {
+
+    if (nbEsc >= 3) return;
+
+    nbEsc++;
+
+    if (nbEsc >= 1) {
+        document.querySelectorAll('.escl1')
+            .forEach(el => el.style.display = 'table-cell');
+    }
+
+    if (nbEsc >= 2) {
+        document.querySelectorAll('.escl2')
+            .forEach(el => el.style.display = 'table-cell');
+    }
+
+    if (nbEsc >= 3) {
+        document.querySelectorAll('.escl3')
+            .forEach(el => el.style.display = 'table-cell');
+
+        document.getElementById('btnAddEsclave').style.display = 'none';
+    }
+
+    document.getElementById('btnRemoveEsclave').style.display = 'inline-block';
+     synchroniserAffichageEsclaves();
+}
+
+function retirerEsclave() {
+
+    if (nbEsc === 3) {
+        document.querySelectorAll('.escl3')
+            .forEach(el => el.style.display = 'none');
+    }
+
+    if (nbEsc === 2) {
+        document.querySelectorAll('.escl2')
+            .forEach(el => el.style.display = 'none');
+    }
+
+    if (nbEsc === 1) {
+        document.querySelectorAll('.escl1')
+            .forEach(el => el.style.display = 'none');
+    }
+
+    if (nbEsc > 0) {
+        nbEsc--;
+    }
+
+    document.getElementById('btnAddEsclave').style.display = 'inline-block';
+
+    if (nbEsc === 0) { document.getElementById('btnRemoveEsclave').style.display = 'none'; }
+     synchroniserAffichageEsclaves();
+}
+// ===== FONCTION ALERTE COULEUR =====
+// L'iPhone/iPad peut ignorer la couleur appliquée au texte d'un <select>
+// natif. On conserve donc la mise en forme du select ET un indicateur
+// externe, toujours visible, lorsque la valeur est en alerte.
+function majCouleur(select){
+    const valeurAlerte = select.dataset.alert;
+    if (!valeurAlerte) return;
+
+    let badge = select.nextElementSibling;
+    if (!badge || !badge.classList.contains('status-alert-badge')) {
+        badge = document.createElement('span');
+        badge.className = 'status-alert-badge';
+        badge.setAttribute('aria-live', 'polite');
+        select.insertAdjacentElement('afterend', badge);
+    }
+
+    const enAlerte = select.value === valeurAlerte;
+    select.classList.toggle('select-alerte', enAlerte);
+    select.classList.toggle('nonconforme', enAlerte);
+
+    badge.textContent = enAlerte ? '⚠ ' : '';
+    badge.classList.toggle('visible', enAlerte);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    toggleAutreCable();
+    synchroniserAffichageEsclaves();
+
+    document.querySelectorAll('select[data-alert]').forEach(select => {
+        majCouleur(select);
+        select.addEventListener('change', () => majCouleur(select));
+    });
+  } catch (err) {
+    console.error('Erreur init (alertes/esclaves):', err);
+  }
+
+  // Initialise les pads de signature tactile dès le chargement de la page.
+  // Auparavant, initSignatures() n'était appelée que lors de l'ouverture
+  // d'un rapport existant (restoreSignatureData), donc sur un rapport vierge
+  // les canvases ne recevaient jamais leurs écouteurs pointerdown/move/up :
+  // impossible de signer, sur iOS, Android comme Windows. La fonction est
+  // protégée contre le double-appel (voir setupSignaturePad), donc elle peut
+  // être rappelée sans risque lors de l'ouverture d'un fichier .json.
+  try {
+    initSignatures();
+  } catch (err) {
+    console.error('Erreur init (signatures):', err);
+  }
+
+  // Affiche l'avertissement si le rapport semble ouvert dans une
+  // visionneuse intégrée (Teams / OneDrive / GED...) plutôt que Safari.
+  try {
+    if (isLikelyEmbeddedViewer()) {
+      const warn = document.getElementById('viewer-warning');
+      if (warn) warn.style.display = 'block';
+    }
+  } catch (err) {
+    console.error('Erreur détection visionneuse:', err);
+  }
+});
+
+// ===== UI OPT TABLE: add rows =====
+let uiRowCount = 0;
+function addUIRow() {
+  uiRowCount++;
+  const tbody = document.getElementById('ui-opt-body');
+  const tr = document.createElement('tr');
+  const cellCount = 17; // N°UI + 16 columns
+  for (let i = 0; i < cellCount; i++) {
+    const td = document.createElement('td');
+    if (i === 0) {
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.min = 0; inp.max = 63;
+      inp.style.width = '100%';
+      inp.id = 'uiOptRow' + uiRowCount + 'Col' + i;
+      td.appendChild(inp);
+    } else {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.id = 'uiOptRow' + uiRowCount + 'Col' + i;
+      td.appendChild(inp);
+    }
+    tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
+
+// Ajoute les lignes UI manquantes nécessaires pour restaurer une sauvegarde
+// qui contenait plus de lignes que les 20 lignes créées par défaut.
+function ensureUIOptRows(data) {
+  let maxRow = uiRowCount;
+  Object.keys(data).forEach(key => {
+    const m = key.match(/^uiOptRow(\d+)Col/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n > maxRow) maxRow = n;
+    }
+  });
+  while (uiRowCount < maxRow) {
+    addUIRow();
+  }
+}
+
+// Initialize 20 UI rows
+for(let i = 0; i < 20; i++) addUIRow();
+
+// ===== UI CH TABLE: populate left (0-19) =====
+let uiChRowCount = 0;
+
+function addUIChRow() {
+
+    const tbody = document.getElementById('ui-ch-body');
+
+    const tr = document.createElement('tr');
+
+    const r = uiChRowCount;
+
+    tr.innerHTML = `
+        <td style="font-weight:700;background:var(--gray-cell)">
+            ${r}
+        </td>
+        <td><input type="text" class="force-maj" id="uiChRow${r}Col1"></td>
+        <td><input type="text" class="force-maj" id="uiChRow${r}Col2"></td>
+        <td><input type="text" class="force-maj" id="uiChRow${r}Col3"></td>
+        <td><input type="text" class="force-maj" id="uiChRow${r}Col4"></td>
+    `;
+
+    tbody.appendChild(tr);
+
+    uiChRowCount++;
+}
+
+// Ajoute les lignes UI/CH manquantes nécessaires pour restaurer une sauvegarde
+// qui contenait plus de lignes que celles présentes par défaut (ex: lignes
+// ajoutées via le bouton "Ajouter une ligne" avant l'enregistrement).
+function ensureUIChRows(data) {
+  let maxRow = uiChRowCount - 1;
+  Object.keys(data).forEach(key => {
+    const m = key.match(/^uiChRow(\d+)Col/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n > maxRow) maxRow = n;
+    }
+  });
+  while (uiChRowCount <= maxRow) {
+    addUIChRow();
+  }
+}
+
+for(let i = 0; i < 20; i++) {
+    addUIChRow();
+}
+
+// ===== ADD PHOTO PAGE =====
+function addPhotoPage(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const container = document.getElementById('photo-pages');
+  files.forEach(file => {
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        const base64 = e.target.result;
+
+        const page = document.createElement('div');
+
+        page.className = 'page';
+
+        page.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-title">
+              <h1>Rapport d'assistance à la<br>mise en service DRV / UTOPIA</h1>
+            </div>
+            <div class="hitachi-logo">
+              <span class="logo-text">BOSCH</span>
+              <span class="logo-sub">Cooling & Heating</span>
+            </div>
+          </div>
+
+          <div class="block" style="text-align:center; padding:8px">
+
+            <img src="${base64}"
+                 style="max-width:100%; max-height:240mm; object-fit:contain; display:block; margin:0 auto;">
+
+            <input
+                type="text"
+                class="form-input"
+                placeholder="Légende de la photo"
+                style="margin-top:6px; width:80%; text-align:center">
+
+          </div>
+
+          <div class="page-footer-info">
+            Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+            BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST | V3.0
+          </div>
+        `;
+
+        container.appendChild(page);
+
+    };
+
+    reader.readAsDataURL(file);
+
+});
+  input.value = '';
+}
+
+// ===== DÉTECTION D'UNE VISIONNEUSE INTÉGRÉE (Teams / OneDrive / GED...) =====
+// Impossible de savoir avec certitude à 100% depuis le JavaScript de la
+// page si on tourne dans Safari ou dans le WKWebView interne d'une autre
+// application : on se base donc sur deux signaux de capacité fiables
+// (et non sur le user-agent, trop peu fiable) :
+//  - l'accès à localStorage est bloqué (SecurityError) dans plusieurs
+//    visionneuses embarquées ;
+//  - l'API Web Share standard (navigator.share / canShare), disponible
+//    nativement dans Safari iOS depuis longtemps, est souvent absente ou
+//    désactivée dans les WebView internes d'apps tierces.
+function isLikelyEmbeddedViewer() {
+    let storageBlocked = false;
+    try {
+        localStorage.setItem('__probe__', '1');
+        localStorage.removeItem('__probe__');
+    } catch (e) {
+        storageBlocked = true;
+    }
+    const noShare = !(navigator.share && navigator.canShare);
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    return isIOS && (storageBlocked || noShare);
+}
+
+// Tente de rouvrir le rapport dans Safari. Fonctionne de façon fiable
+// lorsque le fichier est consulté via une URL (cas Teams/SharePoint/
+// OneDrive en ligne) ; ne peut rien faire si le fichier est une copie
+// locale isolée dans le bac à sable de l'application hôte (aucune URL
+// exploitable n'existe alors en dehors de cette application).
+function tryOpenInSafari() {
+    try {
+        const opened = window.open(location.href, '_blank');
+        if (!opened) {
+            throw new Error('popup bloqué');
+        }
+    } catch (e) {
+        alert("Impossible d'ouvrir automatiquement Safari depuis cet aperçu.\n\nUtilisez le menu « … » (ou l'icône de partage) de l'application, puis choisissez « Ouvrir dans le navigateur » ou « Ouvrir dans Safari », avant de réessayer d'imprimer ou d'enregistrer.");
+    }
+}
+
+// ===== IMPRESSION ULTRA-COMPATIBLE IOS (SÉCURISÉE) =====
+function printReport() {
+    try {
+        // 1. Préparation du rendu des remarques (page paginée qui remplace
+        //    la page 7 "écran" dans l'impression/export PDF)
+        if (typeof renderRemarksForPrint === "function") {
+            renderRemarksForPrint();
+        }
+
+        // 2. Masquage temporaire de la page 7 originale
+        const page7 = document.getElementById('page7');
+        if (page7) {
+            page7.classList.add('no-print');
+        }
+
+        // 3. Retire le saut de page forcé sur la toute dernière page
+        //    réellement imprimée (variable selon présence de remarques/photos),
+        //    pour éviter une page blanche finale superflue. L'ordre naturel
+        //    du document place déjà page1..page6, puis les remarques,
+        //    puis les photos : le dernier élément .page (hors page7,
+        //    toujours masquée à l'impression) est donc la vraie dernière page.
+        const allPages = Array.from(document.querySelectorAll('.page'))
+            .filter(p => p.id !== 'page7');
+        const trulyLast = allPages[allPages.length - 1];
+        if (trulyLast) {
+            trulyLast.style.pageBreakAfter = 'auto';
+            trulyLast.style.breakAfter = 'auto';
+        }
+
+        // 4. Appel synchrone de window.print(), toujours dans le même tour
+        //    d'exécution que le clic utilisateur. Sur iOS/Safari, un appel
+        //    différé (setTimeout/requestAnimationFrame) fait perdre le
+        //    contexte "geste utilisateur" et la boîte de dialogue
+        //    d'impression ne s'ouvre alors jamais : c'est ce qui provoquait
+        //    le dysfonctionnement observé sur iOS.
+        window.print();
+
+    } catch (err) {
+        alert("Erreur d'initialisation de l'impression : " + err.message);
+        cleanupPrint();
+    }
+}
+
+// Nettoyage des modifications du DOM
+function cleanupPrint() {
+    const page7 = document.getElementById('page7');
+    if (page7) {
+        page7.classList.remove('no-print');
+    }
+    const container = document.getElementById('remarks-render-pages');
+    if (container) {
+        container.innerHTML = '';
+    }
+    // Retire les éventuels ajustements de saut de page laissés sur la
+    // dernière page imprimée.
+    document.querySelectorAll('.page').forEach(p => {
+        p.style.pageBreakAfter = '';
+        p.style.breakAfter = '';
+    });
+}
+
+// Écouteur de fin d'impression
+window.addEventListener('afterprint', cleanupPrint);
+
+// Échappe le HTML pour éviter toute injection lors de l'insertion de
+// valeurs saisies par l'utilisateur dans le rendu d'impression.
+function escapeHtml(str){
+    return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+// Construit la version "paginée" de la page 7 (Remarques + Validation +
+// Signatures) utilisée uniquement à l'impression/export PDF, en remplacement
+// de la page 7 "écran" (masquée via #page7.no-print). Cette fonction était
+// appelée par printReport() mais n'existait pas : de ce fait, la dernière
+// page (remarques + signatures) disparaissait purement et simplement de tout
+// export PDF ou impression, quelle que soit la plateforme.
+function renderRemarksForPrint(){
+    const host = document.getElementById('remarks-render-pages');
+    const page7 = document.getElementById('page7');
+    if (!host || !page7) return;
+
+    host.innerHTML = '';
+
+    const header = page7.querySelector('.page-header')?.outerHTML || '';
+    const footer = page7.querySelector('.page-footer-info')?.outerHTML || '';
+    const mentionLegale = page7.querySelector('div[style*="font-style:italic"]')?.outerHTML || '';
+
+    const remarquesTexte = document.getElementById('remarques-editor')?.value || '';
+    const remarquesHtml = `<div class="block"><div class="section-title">Remarques</div><div style="white-space:pre-wrap;min-height:100px;padding:6px;font-size:10px;">${escapeHtml(remarquesTexte)}</div></div>`;
+
+    const completionHtml = makeCompletionPrintBlock();
+
+    host.insertAdjacentHTML('beforeend', `<div class="page">${header}${remarquesHtml}${completionHtml}${mentionLegale}${footer}</div>`);
+}
+
+// ===== INTENSITES MAX UE =====
+const INTENSITES_MAX = {
+
+"RAS-2HVRC3": 12.5,
+
+"RAS-2.5HVRC3": 12.5,
+
+"RAS-3HVRC3": 16.5,
+
+"RAS-4HVRC2E": 22.5,
+
+"RAS-5HVRC2E": 22.5,
+
+"RAS-6HVRC2E": 22.5,
+
+"RAS-4HRC2E": 15,
+
+"RAS-5HRC2E": 15,
+
+"RAS-6HRC2E": 15,
+
+"RAS-4HVNC2E": 22.5,
+
+"RAS-5HVNC2E": 22.5,
+
+"RAS-6HVNC2E": 22.5,
+
+"RAS-4HNC2E": 15,
+
+"RAS-5HNC2E": 15,
+
+"RAS-6HNC2E": 15,
+
+"RAS-4HVRP2E": 22.5,
+
+"RAS-5HVRP2E": 22.5,
+
+"RAS-6HVRP2E": 22.5,
+
+"RAS-4HRP2E": 15,
+
+"RAS-5HRP2E": 15,
+
+"RAS-6HRP2E": 15,
+
+"RAS-4HVNP2E": 22.5,
+
+"RAS-5HVNP2E": 22.5,
+
+"RAS-6HVNP2E": 22.5,
+
+"RAS-4HNP2E": 15,
+
+"RAS-5HNP2E": 15,
+
+"RAS-6HNP2E": 15,
+
+"RAS-8HNCE": 24,
+
+"RAS-10HNCE": 24,
+
+"RAS-12HNC": 24.3,
+
+"RASC-4HNPE": 14.1,
+
+"RASC-5HNPE": 14.1,
+
+"RASC-6HNPE": 16,
+
+"RASC-8HNPE": 24.7,
+
+"RASC-10HNPE": 24.7,
+
+"RAS-4FSVNME": 23.5,
+
+"RAS-5FSVNME": 23.5,
+
+"RAS-6FSVNME": 23.5,
+
+"RAS-4FSNME": 16,
+
+"RAS-5FSNME": 16,
+
+"RAS-6FSNME": 16,
+
+"RAS-8FSXNME": 18,
+
+"RAS-10FSXNME": 19,
+
+"RAS-12FSXNME": 23,
+
+"RAS-8FSXNS2E": 16.1,
+
+"RAS-10FSXNS2E": 20,
+
+"RAS-12FSXNS2E": 23.3,
+
+"RAS-14FSXNS2E": 27.7,
+
+"RAS-16FSXNS2E": 32.7,
+
+"RAS-18FSXNS2E": 39.7,
+
+"RAS-20FSXNS2E": 40,
+
+"RAS-22FSXNS2E": 42.7,
+
+"RAS-24FSXNS2E": 53,
+
+"RAS-5FSXNP2E": "8.6 / 11.5*",
+
+"RAS-6FSXNP2E": "11.2 / 13.3*",
+
+"RAS-8FSXNP2E": "14.5 / 16.8*",
+
+"RAS-10FSXNP2E": "19.5 / 24.7*",
+
+"RAS-12FSXNP2E": "22.4 / 28*",
+
+"RAS-14FSXNP2E": "28 / 33.3*",
+
+"RAS-16FSXNP2E": "30.6 / 34.2*",
+
+"RAS-18FSXNP2E": "35 / 43.3*",
+
+};
+function majIntensite(modeleId, intensiteId){
+
+    const modele = document
+        .getElementById(modeleId)
+        .value
+        .trim()
+        .toUpperCase();
+
+    const intensite =
+        INTENSITES_MAX[modele] || "";
+
+    document
+        .getElementById(intensiteId)
+        .value = intensite;
+}
+function verifierDisjoncteur(
+    disjId,
+    intensiteId,
+    croixId
+){
+
+    const disj =
+        parseFloat(
+            document
+            .getElementById(disjId)
+            .value
+        );
+
+    const intensite =
+        parseFloat(
+            document
+            .getElementById(intensiteId)
+            .value
+        );
+
+    const croix =
+        document.getElementById(croixId);
+
+    if(
+        !isNaN(disj) &&
+        !isNaN(intensite) &&
+        disj < intensite
+    ){
+        croix.style.visibility = "visible";
+    }
+    else{
+        croix.style.visibility = "hidden";
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  try {
+
+    const modeleMaitre =
+        document.getElementById('modeleMaitre');
+
+    if(modeleMaitre){
+
+        modeleMaitre.addEventListener('input', function(){
+
+            majIntensite(
+                'modeleMaitre',
+                'intensiteMaitre'
+            );
+
+        });
+
+    }
+
+    const modeleEscl1 =
+        document.getElementById('modeleEscl1');
+
+    if(modeleEscl1){
+
+        modeleEscl1.addEventListener('input', function(){
+
+            majIntensite(
+                'modeleEscl1',
+                'intensiteEscl1'
+            );
+
+        });
+
+    }
+
+    const modeleEscl2 =
+        document.getElementById('modeleEscl2');
+
+    if(modeleEscl2){
+
+        modeleEscl2.addEventListener('input', function(){
+
+            majIntensite(
+                'modeleEscl2',
+                'intensiteEscl2'
+            );
+
+        });
+
+    }
+
+    const modeleEscl3 =
+        document.getElementById('modeleEscl3');
+
+    if(modeleEscl3){
+
+        modeleEscl3.addEventListener('input', function(){
+
+            majIntensite(
+                'modeleEscl3',
+                'intensiteEscl3'
+            );
+
+        });
+
+    }
+    const disjMaitre =
+        document.getElementById('disjMaitre');
+
+    if(disjMaitre){
+
+        disjMaitre.addEventListener('input', function(){
+
+            verifierDisjoncteur(
+                'disjMaitre',
+                'intensiteMaitre',
+                'croixMaitre'
+            );
+
+        });
+
+    }
+
+    const disjEscl1 =
+        document.getElementById('disjEscl1');
+
+    if(disjEscl1){
+
+        disjEscl1.addEventListener('input', function(){
+
+            verifierDisjoncteur(
+                'disjEscl1',
+                'intensiteEscl1',
+                'croixEscl1'
+            );
+
+        });
+
+    }
+
+    const disjEscl2 =
+        document.getElementById('disjEscl2');
+
+    if(disjEscl2){
+
+        disjEscl2.addEventListener('input', function(){
+
+            verifierDisjoncteur(
+                'disjEscl2',
+                'intensiteEscl2',
+                'croixEscl2'
+            );
+
+        });
+
+    }
+
+    const disjEscl3 =
+        document.getElementById('disjEscl3');
+
+    if(disjEscl3){
+
+        disjEscl3.addEventListener('input', function(){
+
+            verifierDisjoncteur(
+                'disjEscl3',
+                'intensiteEscl3',
+                'croixEscl3'
+            );
+
+        });
+
+    }
+    const champsDiff = [
+    ['diffMaitre', 'alertDiffMaitre'],
+    ['diffEscl1', 'alertDiffEscl1'],
+    ['diffEscl2', 'alertDiffEscl2'],
+    ['diffEscl3', 'alertDiffEscl3'],
+    ['diffUI', 'alertDiffUI']
+    ];
+
+    champsDiff.forEach(function(item){
+
+       const inputId = item[0];
+       const alertId = item[1];
+
+    const champ = document.getElementById(inputId);
+
+    if(champ){
+
+        verifierDifferenciel(inputId, alertId);
+
+        champ.addEventListener('input', function(){
+            verifierDifferenciel(inputId, alertId);
+              });
+
+          }
+
+     });
+
+  } catch (err) {
+    console.error('Erreur init contrôles électriques:', err);
+  }
+});
+
+function verifierDifferenciel(inputId, alertId) {
+    const valeur = document.getElementById(inputId).value.trim();
+    const alerte = document.getElementById(alertId);
+
+    if (
+        valeur === '' ||
+        isNaN(parseFloat(valeur)) ||
+        parseFloat(valeur) > 30
+    ) {
+        alerte.style.visibility = 'visible';
+    } else {
+        alerte.style.visibility = 'hidden';
+    }
+}
+
+function renderUIChPages(){
+
+    const host =
+        document.getElementById('ui-ch-print-pages');
+
+    const page6 =
+         document.getElementById('page6');
+
+    const header =
+         page6.querySelector('.page-header').outerHTML;
+
+    const title =
+         page6.querySelector('.section-title').outerHTML;
+
+    const footer =
+         page6.querySelector('.page-footer-info').outerHTML;
+
+    host.innerHTML = '';
+
+    const rows = Array.from(
+        document.querySelectorAll('#ui-ch-body tr')
+    );
+
+    const LIGNES_PAR_PAGE = 50;
+
+    if(rows.length <= LIGNES_PAR_PAGE){
+        return;
+    }
+
+    const pages =
+        [];
+
+    for(
+        let i = LIGNES_PAR_PAGE;
+        i < rows.length;
+        i += LIGNES_PAR_PAGE
+    ){
+        pages.push(
+            rows.slice(
+                i,
+                i + LIGNES_PAR_PAGE
+            )
+        );
+    }
+
+    pages.forEach(chunk => {
+
+        let tbodyHtml = '';
+
+        chunk.forEach(row => {
+
+            const clone = row.cloneNode(true);
+
+            clone.style.display = '';
+
+            tbodyHtml += clone.outerHTML;
+
+     });
+
+        host.insertAdjacentHTML(
+            'beforeend',
+            `
+            <div class="page">
+
+        ${header}
+
+        <div class="block">
+
+            ${title}
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th style="width:40px">UI</th>
+                        <th>Modèle UI</th>
+                        <th>Emplacement</th>
+                        <th>Groupement UI</th>
+                        <th>Boitier CH</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${tbodyHtml}
+                </tbody>
+
+            </table>
+
+        </div>
+
+        ${footer}
+
+    </div>
+    `
+        );
+
+    });
+
+}
+
+function updateUIChFirstPage(){
+
+    const rows = Array.from(
+        document.querySelectorAll('#ui-ch-body tr')
+    );
+
+    const LIGNES_PAR_PAGE = 50;
+
+    rows.forEach((row,index)=>{
+
+        row.style.display =
+            index < LIGNES_PAR_PAGE
+            ? ''
+            : 'none';
+
+    });
+
+}
+
+// ===================================================================
+// PWA : enregistrement du Service Worker, installation, indicateur
+// hors-ligne. N'affecte aucune des fonctions existantes du rapport.
+// ===================================================================
+
+// 1. Enregistrement du Service Worker (permet le fonctionnement hors ligne)
+// Protégé par try/catch : certains contextes (aperçu OneDrive/SharePoint,
+// iframe "sandboxée", ouverture en file://) interdisent l'accès à l'API
+// Service Worker. Dans ce cas, on ignore simplement — le reste du rapport
+// continue de fonctionner normalement, seul le mode hors-ligne est absent
+// tant que la page n'est pas ouverte depuis sa vraie adresse hébergée.
+try {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+                .catch((err) => console.warn('Service Worker indisponible :', err));
+        });
+    }
+} catch (err) {
+    console.warn('API Service Worker inaccessible dans ce contexte (aperçu sandboxé, etc.) :', err);
+}
+
+// 2. Invite d'installation ("Ajouter à l'écran d'accueil")
+// Sur iOS/Safari, il n'existe pas d'invite native : le bouton reste masqué
+// et l'utilisateur doit utiliser Partager > Sur l'écran d'accueil.
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    const btn = document.getElementById('btnInstallApp');
+    if (btn) btn.style.display = 'inline-flex';
+});
+
+function installApp() {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.finally(() => {
+        deferredInstallPrompt = null;
+        const btn = document.getElementById('btnInstallApp');
+        if (btn) btn.style.display = 'none';
+    });
+}
+
+window.addEventListener('appinstalled', () => {
+    const btn = document.getElementById('btnInstallApp');
+    if (btn) btn.style.display = 'none';
+});
+
+// 3. Indicateur "Hors ligne" (informatif seulement : l'app fonctionne
+// déjà sans connexion grâce au Service Worker)
+function updateOfflineIndicator() {
+    const el = document.getElementById('offlineIndicator');
+    if (el) el.style.display = navigator.onLine ? 'none' : 'inline-block';
+}
+window.addEventListener('online', updateOfflineIndicator);
+window.addEventListener('offline', updateOfflineIndicator);
+updateOfflineIndicator();
+
+</script>
+</body>
+</html>
