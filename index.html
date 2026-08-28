@@ -556,11 +556,17 @@
  #remarks-render-pages:empty{display:none !important;}
  #remarks-render-pages .page{display:block !important;}
  #remarks-render-pages .page:last-child{page-break-after:auto !important; break-after:auto !important;}
+ /* La dernière page de photos ne doit pas non plus forcer de saut. */
+ #photo-pages .page:last-child{page-break-after:auto !important; break-after:auto !important;}
     body { background: white; font-size: 10px; }
     .page {
       box-shadow: none; margin: 0; padding: 6mm 7mm 8mm 7mm;
-      width: 210mm; height: 297mm; min-height: 0; max-height: 297mm;
+      width: 210mm; height: 285mm; min-height: 0; max-height: 285mm;
       overflow: hidden;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
     }
     .action-bar { display: none; }
     .photo-source-modal { display: none !important; }
@@ -2428,7 +2434,21 @@ function printReport() {
             page7.classList.add('no-print');
         }
 
-        // 3. Appel synchrone de window.print(), toujours dans le même tour
+        // 3. Retire le saut de page forcé sur la toute dernière page
+        //    réellement imprimée (variable selon présence de remarques/photos),
+        //    pour éviter une page blanche finale superflue. L'ordre naturel
+        //    du document place déjà page1..page6, puis les remarques,
+        //    puis les photos : le dernier élément .page (hors page7,
+        //    toujours masquée à l'impression) est donc la vraie dernière page.
+        const allPages = Array.from(document.querySelectorAll('.page'))
+            .filter(p => p.id !== 'page7');
+        const trulyLast = allPages[allPages.length - 1];
+        if (trulyLast) {
+            trulyLast.style.pageBreakAfter = 'auto';
+            trulyLast.style.breakAfter = 'auto';
+        }
+
+        // 4. Appel synchrone de window.print(), toujours dans le même tour
         //    d'exécution que le clic utilisateur. Sur iOS/Safari, un appel
         //    différé (setTimeout/requestAnimationFrame) fait perdre le
         //    contexte "geste utilisateur" et la boîte de dialogue
@@ -2452,6 +2472,12 @@ function cleanupPrint() {
     if (container) {
         container.innerHTML = '';
     }
+    // Retire les éventuels ajustements de saut de page laissés sur la
+    // dernière page imprimée.
+    document.querySelectorAll('.page').forEach(p => {
+        p.style.pageBreakAfter = '';
+        p.style.breakAfter = '';
+    });
 }
 
 // Écouteur de fin d'impression
