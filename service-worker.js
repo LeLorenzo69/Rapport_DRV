@@ -1,8 +1,8 @@
-// Service Worker - Rapport AMES DRV HITACHI
+// Service Worker - Rapport AMES DRV BOSCH
 // Stratégie : "cache d'abord, réseau en secours", pour un fonctionnement
 // 100% hors ligne une fois la première visite effectuée.
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = 'rapport-drv-' + CACHE_VERSION;
 
 const ASSETS_TO_CACHE = [
