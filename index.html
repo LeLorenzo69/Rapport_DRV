@@ -447,6 +447,51 @@
   }
   .remarks-area:focus { background: #fffde7; }
 
+  /* ===== NATURE DE L'INTERVENTION (Procès Verbal) ===== */
+  .nature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 10px;
+    padding: 6px 10px;
+  }
+  .nature-check-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+  .nature-check-row input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    accent-color: var(--red);
+    cursor: pointer;
+  }
+  .nature-autre-input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ===== INSTALLATION CONCERNÉE (Procès Verbal) ===== */
+  .install-actions-bar {
+    display: flex; gap: 8px; justify-content: flex-end;
+    padding: 4px 6px; background: var(--white);
+  }
+  .installation-table { margin-top: 0; }
+  .installation-table + .installation-table { margin-top: 4px; }
+  .installation-label-col {
+    width: 1%;
+    white-space: nowrap;
+  }
+  .num-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--red); color: var(--white);
+    font-weight: 700; font-size: 10px; line-height: 1;
+  }
+  .installation-table th { background: var(--white); }
+
   /* ===== ARRIVÉE / DÉPART + SIGNATURES ===== */
   .completion-block { border:1px solid var(--border); margin-top:6px; margin-bottom:6px; background:var(--white); }
   .completion-times { display:grid; grid-template-columns:1fr 1fr; gap:0; }
@@ -558,6 +603,24 @@
  #remarks-render-pages .page:last-child{page-break-after:auto !important; break-after:auto !important;}
  /* La dernière page de photos ne doit pas non plus forcer de saut. */
  #photo-pages .page:last-child{page-break-after:auto !important; break-after:auto !important;}
+
+ /* Même logique pour la page 2 (Remarques/Validation) du Procès Verbal. */
+ #pv-page2{
+   display:none !important;
+   visibility:hidden !important;
+   height:0 !important;
+   min-height:0 !important;
+   max-height:0 !important;
+   margin:0 !important;
+   padding:0 !important;
+   overflow:hidden !important;
+   page-break-after:avoid !important;
+   break-after:avoid-page !important;
+ }
+ #pv-remarks-render-pages:empty{display:none !important;}
+ #pv-remarks-render-pages .page{display:block !important;}
+ #pv-remarks-render-pages .page:last-child{page-break-after:auto !important; break-after:auto !important;}
+ #pv-photo-pages .page:last-child{page-break-after:auto !important; break-after:auto !important;}
     body { background: white; font-size: 10px; }
     .page {
       box-shadow: none; margin: 0; padding: 6mm 7mm 8mm 7mm;
@@ -602,7 +665,7 @@
     }
     .page-header-title h1 { font-size: 14px; }
     .hitachi-logo .logo-text { font-size: 20px; }
-    .coord-grid, .releves-grid, .ui-grid { grid-template-columns: 1fr; }
+    .coord-grid, .releves-grid, .ui-grid, .nature-grid { grid-template-columns: 1fr; }
     .completion-times, .signatures-grid { grid-template-columns:1fr; }
     .completion-time-cell + .completion-time-cell, .signature-cell + .signature-cell { border-left:none; border-top:1px solid var(--border); }
     .coord-col + .coord-col { border-left: none; border-top: 1px solid var(--border); }
@@ -765,10 +828,9 @@
       Rapport PAC
       <span class="menu-tile-soon">Bientôt disponible</span>
     </button>
-    <button type="button" class="menu-tile disabled" onclick="openReport('pv')">
+    <button type="button" class="menu-tile" onclick="openReport('pv')">
       <span class="menu-tile-icon">📄</span>
       Procès Verbal
-      <span class="menu-tile-soon">Bientôt disponible</span>
     </button>
     <button type="button" class="menu-tile disabled" onclick="openReport('chiller-m')">
       <span class="menu-tile-icon">📄</span>
@@ -1308,7 +1370,7 @@ function choosePhotoSource(source) {
         input.removeAttribute('multiple');
     } else {
         input.removeAttribute('capture');
-        if (inputId === 'photo-add-input') {
+        if (inputId === 'photo-add-input' || inputId === 'pv-photo-add-input') {
             input.setAttribute('multiple', '');
         } else {
             input.removeAttribute('multiple');
@@ -1839,12 +1901,12 @@ function handlePhotoUpload(input, previewId) {
        style="display:none"
        onchange="loadReport(this)">
 
-     <button class="btn" id="btnInstallApp" onclick="installApp()" style="display:none">
+     <button class="btn btn-install-app" id="btnInstallApp" onclick="installApp()" style="display:none">
         <span class="btn-icon">⬇️</span>
         Installer l'application
      </button>
 
-     <span id="offlineIndicator" style="display:none; margin-left:8px; padding:4px 8px; border-radius:3px; background:#555; color:#fff; font-size:10px; font-weight:700; vertical-align:middle;">
+     <span id="offlineIndicator" class="offline-indicator-badge" style="display:none; margin-left:8px; padding:4px 8px; border-radius:3px; background:#555; color:#fff; font-size:10px; font-weight:700; vertical-align:middle;">
         Hors ligne
      </span>
       </div>
@@ -1875,13 +1937,205 @@ function handlePhotoUpload(input, previewId) {
 </div>
 <!-- ============================================================ /RAPPORT : DRV / UTOPIA ============================================================ -->
 
+<!-- ============================================================ RAPPORT : PROCÈS VERBAL ============================================================ -->
+<div id="view-report-pv" class="app-view">
+
+<!-- ============================================================ PAGE 1 ============================================================ -->
+<div class="page" id="pv-page1">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="page-header-title">
+      <h1>Procès verbal<br>d'intervention technique</h1>
+    </div>
+    <div class="hitachi-logo">
+      <span class="logo-text">BOSCH</span>
+      <span class="logo-sub">Cooling &amp; Heating</span>
+    </div>
+  </div>
+
+  <div class="top-meta">
+    <span class="reserved-text">Document réservé au personnel BOSCH et aux stations techniques agréées.</span>
+    <div class="date-field">
+      <span>Date :</span>
+      <input type="date" id="pv-date" class="form-input" style="width:110px;">
+    </div>
+  </div>
+
+  <!-- COORDONNÉES -->
+  <div class="block">
+    <div class="section-title">Coordonnées</div>
+    <div class="coord-grid">
+      <div>
+        <div class="sub-section-title">Installateur</div>
+        <div class="coord-col">
+          <div class="coord-row"><span class="coord-label">Société :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Nom/Prénom :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Adresse :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Code Postal :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Ville :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Téléphone :</span><input type="text" class="form-input coord-input force-maj"></div>
+        </div>
+      </div>
+      <div>
+        <div class="sub-section-title">Client Final</div>
+        <div class="coord-col">
+          <div class="coord-row"><span class="coord-label">Société :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Nom/Prénom :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Adresse :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Code Postal :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Ville :</span><input type="text" class="form-input coord-input force-maj"></div>
+          <div class="coord-row"><span class="coord-label">Téléphone :</span><input type="text" class="form-input coord-input force-maj"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERVENANT -->
+  <div class="block">
+    <div class="section-title">Intervenant</div>
+    <div class="intervenant-check-row"><span style="font-weight:700"></span><select class="status-select"><option></option><option>Technicien BOSCH</option><option>Technicien STATION TECHNIQUE</option></select></div>
+    <div class="intervenant-grid">
+      <div class="intervenant-row"><span class="label">Nom/Prénom :</span><input type="text" class="form-input force-maj" style="flex:1"></div>
+      <div class="intervenant-row"><span class="label">Entreprise :</span><input type="text" class="form-input force-maj" style="flex:1"></div>
+      <div class="intervenant-row"><span class="label">N° de capacité :</span><input type="text" class="form-input force-maj" style="flex:1"></div>
+    </div>
+  </div>
+
+  <!-- NATURE DE L'INTERVENTION -->
+  <div class="block">
+    <div class="section-title">Nature de l'intervention</div>
+    <div class="nature-grid">
+      <div class="nature-col">
+        <label class="nature-check-row"><input type="checkbox"><span>Contrôle de fonctionnement</span></label>
+        <label class="nature-check-row"><input type="checkbox"><span>Mise en service</span></label>
+        <label class="nature-check-row"><input type="checkbox"><span>Travaux</span></label>
+      </div>
+      <div class="nature-col">
+        <label class="nature-check-row"><input type="checkbox"><span>Audit</span></label>
+        <label class="nature-check-row"><input type="checkbox"><span>Dépannage</span></label>
+        <label class="nature-check-row"><input type="checkbox"><span>Autre :</span><input type="text" class="form-input force-maj nature-autre-input"></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSTALLATION CONCERNÉE -->
+  <div class="block">
+    <div class="section-title">Installation concernée</div>
+    <div class="install-actions-bar no-print">
+      <button type="button" class="btn" style="font-size:10px; padding:4px 10px;" onclick="ajouterInstallationPv()">+ Ajouter une installation</button>
+      <button type="button" id="pv-btn-remove-install" class="btn" style="font-size:10px; padding:4px 10px; background:#777; display:none;" onclick="retirerInstallationPv()">− Retirer la dernière</button>
+    </div>
+    <div id="pv-installation-groups"></div>
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V1.0
+  </div>
+</div>
+
+<!-- ============================================================ PAGE 2 (REMARQUES / VALIDATION) ============================================================ -->
+<div class="page" id="pv-page2">
+  <div class="page-header">
+    <div class="page-header-title"><h1>Procès verbal<br>d'intervention technique</h1></div>
+    <div class="hitachi-logo"><span class="logo-text">BOSCH</span><span class="logo-sub">Cooling &amp; Heating</span></div>
+  </div>
+
+  <!-- REMARQUES -->
+  <div class="block">
+    <div class="section-title">Remarques</div>
+    <textarea class="remarks-area" id="pv-remarques-editor" placeholder="Saisir vos remarques ici…"></textarea><div style="font-size:9px;padding:4px">La pagination sera générée automatiquement à l'impression.</div>
+  </div>
+
+  <!-- HEURES ET SIGNATURES (sous le tableau des remarques) -->
+  <div class="completion-block" id="pv-completion-block">
+    <div class="section-title">Validation de l'intervention</div>
+    <div class="completion-times">
+      <div class="completion-time-cell"><label for="pv-heure-arrivee">Heure d'arrivée :</label><input type="time" id="pv-heure-arrivee" class="form-input"></div>
+      <div class="completion-time-cell"><label for="pv-heure-depart">Heure de départ :</label><input type="time" id="pv-heure-depart" class="form-input"></div>
+    </div>
+    <div class="signatures-grid">
+      <div class="signature-cell">
+        <span class="signature-label">Signature intervenant</span>
+        <div class="signature-pad-wrap"><canvas id="pv-signature-intervenant" class="signature-pad" aria-label="Signature intervenant"></canvas><button type="button" class="signature-clear no-print" onclick="clearSignature('pv-signature-intervenant')">Effacer</button></div>
+      </div>
+      <div class="signature-cell">
+        <span class="signature-label">Signature client</span>
+        <div class="signature-pad-wrap"><canvas id="pv-signature-client" class="signature-pad" aria-label="Signature client"></canvas><button type="button" class="signature-clear no-print" onclick="clearSignature('pv-signature-client')">Effacer</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVERTISSEMENT VISIONNEUSE INTÉGRÉE (Teams / OneDrive / GED...) -->
+  <div id="pv-viewer-warning" class="no-print" style="display:none; background:#fff4e5; border:1px solid #e0a94c; border-radius:3px; padding:8px 10px; margin-bottom:8px; font-size:11px; color:#5c3d00;">
+    ⚠️ Ce rapport semble ouvert dans un aperçu intégré (Teams, OneDrive, appli de GED…) plutôt que dans Safari.
+    Dans ce cas, les boutons <strong>Imprimer</strong> et <strong>Enregistrer</strong> peuvent ne pas fonctionner.
+    <div style="margin-top:6px;">
+      <button type="button" class="btn" style="font-size:11px;padding:4px 8px;" onclick="tryOpenInSafari()">Ouvrir dans Safari</button>
+      <span style="display:inline-block;margin-left:6px;">Si rien ne se passe, utilisez le menu « … » de l'application puis « Ouvrir dans le navigateur ».</span>
+    </div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar no-print">
+    <button class="btn btn-menu-retour" onclick="showMenu()">
+      <span class="btn-icon">🏠</span> Retour MENU
+    </button>
+
+    <button class="btn" onclick="openPhotoChooser('pv-photo-add-input')">
+      <span class="btn-icon">📷</span> Ajouter une photo
+    </button>
+    <input type="file" id="pv-photo-add-input" class="photo-file-input" accept="image/*" multiple onchange="addPhotoPagePv(this)">
+
+    <button class="btn" onclick="printReportPv()">
+      <span class="btn-icon">🖨️</span> Imprimer / Exporter PDF
+    </button>
+
+    <button class="btn" onclick="saveReport()">
+        <span class="btn-icon">💾</span>
+        Enregistrer le rapport
+     </button>
+
+     <button class="btn"
+        onclick="document.getElementById('openReport').click()" >
+        <span class="btn-icon">📂</span>
+        Ouvrir un rapport
+     </button>
+
+     <button class="btn btn-install-app" onclick="installApp()" style="display:none">
+        <span class="btn-icon">⬇️</span>
+        Installer l'application
+     </button>
+
+     <span class="offline-indicator-badge" style="display:none; margin-left:8px; padding:4px 8px; border-radius:3px; background:#555; color:#fff; font-size:10px; font-weight:700; vertical-align:middle;">
+        Hors ligne
+     </span>
+      </div>
+
+  <div style="margin-top:8px; font-size:10px; text-align:center; font-style:italic; color:#555">
+    Ce rapport a pour but de vérifier le bon fonctionnement de l'installation, celui-ci ne peut pas se substituer aux notices d'installation ou au catalogue technique du matériel. Pour plus de précisions, merci de les consulter.
+  </div>
+
+  <div class="page-footer-info">
+    Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+    BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST &nbsp;|&nbsp; V1.0
+  </div>
+</div>
+
+<!-- ============================================================ PHOTO PAGES (dynamic) PROCÈS VERBAL ============================================================ -->
+<div id="pv-remarks-render-pages"></div><div id="pv-photo-pages"></div>
+
+</div>
+<!-- ============================================================ /RAPPORT : PROCÈS VERBAL ============================================================ -->
+
 <script>
 
 /* ===== NAVIGATION MENU / RAPPORTS ===== */
 const REPORTS = {
   'drv-utopia': { title: 'Rapport DRV/Utopia',        viewId: 'view-report-drv-utopia', available: true },
   'pac':        { title: 'Rapport PAC',                viewId: null, available: false },
-  'pv':         { title: 'Procès Verbal',              viewId: null, available: false },
+  'pv':         { title: 'Procès Verbal',              viewId: 'view-report-pv', available: true },
   'chiller-m':  { title: 'Rapport Chiller M',          viewId: null, available: false },
   'chiller-l':  { title: 'Rapport Chiller L',          viewId: null, available: false },
   'gtb':        { title: 'Rapport GTB',                viewId: null, available: false },
@@ -1983,15 +2237,28 @@ async function saveReport() {
     });
 
     saveSignatureData(data);
+    saveSignatureDataPv(data);
     data.photos = photosSauvegardees;
     data.nbEsc = nbEsc;
     data.photoPages = [];
+    data.pvPhotoPages = [];
 
     document.querySelectorAll('#photo-pages .page').forEach(page => {
         const img = page.querySelector('img');
         const legende = page.querySelector('input');
         if (img) {
             data.photoPages.push({
+                image: img.src,
+                legende: legende ? legende.value : ''
+            });
+        }
+    });
+
+    document.querySelectorAll('#pv-photo-pages .page').forEach(page => {
+        const img = page.querySelector('img');
+        const legende = page.querySelector('input');
+        if (img) {
+            data.pvPhotoPages.push({
                 image: img.src,
                 legende: legende ? legende.value : ''
             });
@@ -2101,6 +2368,7 @@ function loadReport(input) {
         synchroniserAffichageEsclaves();
         ensureUIOptRows(data);
         ensureUIChRows(data);
+        ensurePvInstallColumns(data);
         if(data.photoPages){
 
     const container = document.getElementById('photo-pages');
@@ -2145,6 +2413,52 @@ function loadReport(input) {
         container.appendChild(page);
 
     });
+}
+if(data.pvPhotoPages){
+
+    const containerPv = document.getElementById('pv-photo-pages');
+
+    containerPv.innerHTML = '';
+
+    data.pvPhotoPages.forEach(p => {
+
+        const page = document.createElement('div');
+
+        page.className = 'page';
+
+        page.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-title">
+              <h1>Procès verbal<br>d'intervention technique</h1>
+            </div>
+            <div class="hitachi-logo">
+              <span class="logo-text">BOSCH</span>
+              <span class="logo-sub">Cooling & Heating</span>
+            </div>
+          </div>
+
+          <div class="block" style="text-align:center; padding:8px">
+
+               <img src="${p.image}"
+                  style="max-width:100%; max-height:240mm; object-fit:contain; display:block; margin:0 auto;">
+
+               <input
+                   type="text"
+                   class="form-input"
+                   value="${p.legende || ''}"
+                   style="margin-top:6px; width:80%; text-align:center">
+
+           </div>
+
+          <div class="page-footer-info">
+            BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST | V1.0
+          </div>
+        `;
+
+        containerPv.appendChild(page);
+
+    });
+}
 if(data.photos){
 
     Object.entries(data.photos)
@@ -2163,7 +2477,6 @@ if(data.photos){
             }
         });
 }
-        }
 
         document
             .querySelectorAll(
@@ -2190,6 +2503,7 @@ if(data.photos){
             });
 
         restoreSignatureData(data);
+        restoreSignatureDataPv(data);
 
         verifierDisjoncteur('disjMaitre', 'intensiteMaitre', 'croixMaitre');
         verifierDisjoncteur('disjEscl1', 'intensiteEscl1', 'croixEscl1');
@@ -2401,12 +2715,20 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Erreur init (signatures):', err);
   }
 
+  try {
+    initSignaturesPv();
+  } catch (err) {
+    console.error('Erreur init (signatures Procès Verbal):', err);
+  }
+
   // Affiche l'avertissement si le rapport semble ouvert dans une
   // visionneuse intégrée (Teams / OneDrive / GED...) plutôt que Safari.
   try {
     if (isLikelyEmbeddedViewer()) {
       const warn = document.getElementById('viewer-warning');
       if (warn) warn.style.display = 'block';
+      const warnPv = document.getElementById('pv-viewer-warning');
+      if (warnPv) warnPv.style.display = 'block';
     }
   } catch (err) {
     console.error('Erreur détection visionneuse:', err);
@@ -2699,6 +3021,245 @@ function renderRemarksForPrint(){
 
     host.insertAdjacentHTML('beforeend', `<div class="page">${header}${remarquesHtml}${completionHtml}${mentionLegale}${footer}</div>`);
 }
+
+// ===== PROCÈS VERBAL : IMPRESSION / EXPORT PDF =====
+function printReportPv() {
+    try {
+        if (typeof renderRemarksForPrintPv === "function") {
+            renderRemarksForPrintPv();
+        }
+
+        const pvPage2 = document.getElementById('pv-page2');
+        if (pvPage2) {
+            pvPage2.classList.add('no-print');
+        }
+
+        // Seules les pages du rapport Procès Verbal doivent compter pour
+        // déterminer la "vraie" dernière page imprimée (les autres rapports
+        // restent masqués via .app-view mais ne doivent pas fausser le calcul).
+        const pvPages = Array.from(document.querySelectorAll('#view-report-pv .page'))
+            .filter(p => p.id !== 'pv-page2');
+        const trulyLast = pvPages[pvPages.length - 1];
+        if (trulyLast) {
+            trulyLast.style.pageBreakAfter = 'auto';
+            trulyLast.style.breakAfter = 'auto';
+        }
+
+        window.print();
+    } catch (err) {
+        alert("Erreur d'initialisation de l'impression : " + err.message);
+        cleanupPrintPv();
+    }
+}
+
+function cleanupPrintPv() {
+    const pvPage2 = document.getElementById('pv-page2');
+    if (pvPage2) {
+        pvPage2.classList.remove('no-print');
+    }
+    const container = document.getElementById('pv-remarks-render-pages');
+    if (container) {
+        container.innerHTML = '';
+    }
+    document.querySelectorAll('#view-report-pv .page').forEach(p => {
+        p.style.pageBreakAfter = '';
+        p.style.breakAfter = '';
+    });
+}
+window.addEventListener('afterprint', cleanupPrintPv);
+
+function makeCompletionPrintBlockPv(){
+   const arrivee=document.getElementById('pv-heure-arrivee')?.value||'', depart=document.getElementById('pv-heure-depart')?.value||'';
+   return `<div class="completion-block print-completion-block"><div class="section-title">Validation de l'intervention</div><div class="completion-times"><div class="completion-time-cell"><label>Heure d'arrivée :</label><span>${escapeHtml(arrivee)}</span></div><div class="completion-time-cell"><label>Heure de départ :</label><span>${escapeHtml(depart)}</span></div></div><div class="signatures-grid"><div class="signature-cell"><span class="signature-label">Signature intervenant</span><div class="signature-pad-wrap">${getSignaturePrintImage('pv-signature-intervenant')}</div></div><div class="signature-cell"><span class="signature-label">Signature client</span><div class="signature-pad-wrap">${getSignaturePrintImage('pv-signature-client')}</div></div></div></div>`;
+}
+
+function renderRemarksForPrintPv(){
+    const host = document.getElementById('pv-remarks-render-pages');
+    const pvPage2 = document.getElementById('pv-page2');
+    if (!host || !pvPage2) return;
+
+    host.innerHTML = '';
+
+    const header = pvPage2.querySelector('.page-header')?.outerHTML || '';
+    const footer = pvPage2.querySelector('.page-footer-info')?.outerHTML || '';
+    const mentionLegale = pvPage2.querySelector('div[style*="font-style:italic"]')?.outerHTML || '';
+
+    const remarquesTexte = document.getElementById('pv-remarques-editor')?.value || '';
+    const remarquesHtml = `<div class="block"><div class="section-title">Remarques</div><div style="white-space:pre-wrap;min-height:100px;padding:6px;font-size:10px;">${escapeHtml(remarquesTexte)}</div></div>`;
+
+    const completionHtml = makeCompletionPrintBlockPv();
+
+    host.insertAdjacentHTML('beforeend', `<div class="page">${header}${remarquesHtml}${completionHtml}${mentionLegale}${footer}</div>`);
+}
+
+function initSignaturesPv(){ setupSignaturePad('pv-signature-intervenant'); setupSignaturePad('pv-signature-client'); }
+function saveSignatureDataPv(data){ data.pvSignatureIntervenant=signatureData('pv-signature-intervenant'); data.pvSignatureClient=signatureData('pv-signature-client'); }
+function restoreSignatureDataPv(data){ initSignaturesPv(); requestAnimationFrame(()=>{restoreSignature('pv-signature-intervenant',data.pvSignatureIntervenant||''); restoreSignature('pv-signature-client',data.pvSignatureClient||'');}); }
+
+// ===== PROCÈS VERBAL : AJOUT DE PHOTOS =====
+function addPhotoPagePv(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const container = document.getElementById('pv-photo-pages');
+  files.forEach(file => {
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        const base64 = e.target.result;
+
+        const page = document.createElement('div');
+
+        page.className = 'page';
+
+        page.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-title">
+              <h1>Procès verbal<br>d'intervention technique</h1>
+            </div>
+            <div class="hitachi-logo">
+              <span class="logo-text">BOSCH</span>
+              <span class="logo-sub">Cooling & Heating</span>
+            </div>
+          </div>
+
+          <div class="block" style="text-align:center; padding:8px">
+
+            <img src="${base64}"
+                 style="max-width:100%; max-height:240mm; object-fit:contain; display:block; margin:0 auto;">
+
+            <input
+                type="text"
+                class="form-input"
+                placeholder="Légende de la photo"
+                style="margin-top:6px; width:80%; text-align:center">
+
+          </div>
+
+          <div class="page-footer-info">
+            Les produits Hitachi Cooling & Heating sont fabriqués et vendus par le groupe Bosch Home Comfort<br>
+            BOSCH HOME COMFORT COOLING AND HEATING SAS — Parc Aktiland II - 2 Rue de Lombardie - 69800 SAINT-PRIEST | V1.0
+          </div>
+        `;
+
+        container.appendChild(page);
+
+    };
+
+    reader.readAsDataURL(file);
+
+});
+  input.value = '';
+}
+
+// ===== PROCÈS VERBAL : INSTALLATION CONCERNÉE (colonnes dynamiques, groupées par 4) =====
+const PV_INSTALL_PER_ROW = 4;
+const PV_INSTALL_FIELDS = [
+  { key: 'modele',      label: 'Modèle :' },
+  { key: 'serie',       label: 'Numéro de série :' },
+  { key: 'emplacement', label: 'Emplacement :' }
+];
+let pvNbInstall = 0;
+
+function pvInstallGroupIndex(n) {
+  return Math.floor((n - 1) / PV_INSTALL_PER_ROW);
+}
+
+function pvCreateInstallGroupTable(groupIndex) {
+  const container = document.getElementById('pv-installation-groups');
+  const table = document.createElement('table');
+  table.className = 'installation-table';
+  table.dataset.group = String(groupIndex);
+
+  const thead = document.createElement('thead');
+  thead.innerHTML = '<tr><th class="installation-label-col"></th></tr>';
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  PV_INSTALL_FIELDS.forEach(f => {
+    const tr = document.createElement('tr');
+    tr.dataset.field = f.key;
+    tr.innerHTML = `<td class="label-col installation-label-col">${f.label}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  container.appendChild(table);
+  return table;
+}
+
+function pvUpdateRemoveButtonState() {
+  const btn = document.getElementById('pv-btn-remove-install');
+  if (btn) btn.style.display = pvNbInstall > 1 ? 'inline-flex' : 'none';
+}
+
+function ajouterInstallationPv() {
+  pvNbInstall++;
+  const n = pvNbInstall;
+  const groupIndex = pvInstallGroupIndex(n);
+
+  let table = document.querySelector('#pv-installation-groups table[data-group="' + groupIndex + '"]');
+  if (!table) {
+    table = pvCreateInstallGroupTable(groupIndex);
+  }
+
+  const theadRow = table.querySelector('thead tr');
+  theadRow.insertAdjacentHTML('beforeend', '<th><span class="num-badge">' + n + '</span></th>');
+
+  table.querySelectorAll('tbody tr').forEach(tr => {
+    const field = tr.dataset.field;
+    tr.insertAdjacentHTML('beforeend', '<td><input type="text" class="force-maj" id="pv-inst-' + field + '-' + n + '"></td>');
+  });
+
+  pvUpdateRemoveButtonState();
+}
+
+function retirerInstallationPv() {
+  if (pvNbInstall <= 1) return;
+  const n = pvNbInstall;
+  const groupIndex = pvInstallGroupIndex(n);
+  const table = document.querySelector('#pv-installation-groups table[data-group="' + groupIndex + '"]');
+
+  if (table) {
+    const theadRow = table.querySelector('thead tr');
+    if (theadRow && theadRow.lastElementChild && theadRow.children.length > 1) {
+      theadRow.lastElementChild.remove();
+    }
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      if (tr.lastElementChild && tr.children.length > 1) {
+        tr.lastElementChild.remove();
+      }
+    });
+    // Si c'était la seule colonne du groupe (1er de son groupe), on retire la table entière.
+    if ((n - 1) % PV_INSTALL_PER_ROW === 0) {
+      table.remove();
+    }
+  }
+
+  pvNbInstall--;
+  pvUpdateRemoveButtonState();
+}
+
+// Ajoute les colonnes manquantes nécessaires pour restaurer une sauvegarde
+// qui contenait plus d'installations que celle présente par défaut.
+function ensurePvInstallColumns(data) {
+  let maxN = pvNbInstall;
+  Object.keys(data).forEach(key => {
+    const m = key.match(/^pv-inst-(?:modele|serie|emplacement)-(\d+)$/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n > maxN) maxN = n;
+    }
+  });
+  while (pvNbInstall < maxN) {
+    ajouterInstallationPv();
+  }
+}
+
+// Une installation par défaut à l'ouverture de l'application.
+ajouterInstallationPv();
+
 
 // ===== INTENSITES MAX UE =====
 const INTENSITES_MAX = {
@@ -3205,8 +3766,7 @@ let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
-    const btn = document.getElementById('btnInstallApp');
-    if (btn) btn.style.display = 'inline-flex';
+    document.querySelectorAll('.btn-install-app').forEach(btn => { btn.style.display = 'inline-flex'; });
 });
 
 function installApp() {
@@ -3214,21 +3774,20 @@ function installApp() {
     deferredInstallPrompt.prompt();
     deferredInstallPrompt.userChoice.finally(() => {
         deferredInstallPrompt = null;
-        const btn = document.getElementById('btnInstallApp');
-        if (btn) btn.style.display = 'none';
+        document.querySelectorAll('.btn-install-app').forEach(btn => { btn.style.display = 'none'; });
     });
 }
 
 window.addEventListener('appinstalled', () => {
-    const btn = document.getElementById('btnInstallApp');
-    if (btn) btn.style.display = 'none';
+    document.querySelectorAll('.btn-install-app').forEach(btn => { btn.style.display = 'none'; });
 });
 
 // 3. Indicateur "Hors ligne" (informatif seulement : l'app fonctionne
 // déjà sans connexion grâce au Service Worker)
 function updateOfflineIndicator() {
-    const el = document.getElementById('offlineIndicator');
-    if (el) el.style.display = navigator.onLine ? 'none' : 'inline-block';
+    document.querySelectorAll('.offline-indicator-badge').forEach(el => {
+        el.style.display = navigator.onLine ? 'none' : 'inline-block';
+    });
 }
 window.addEventListener('online', updateOfflineIndicator);
 window.addEventListener('offline', updateOfflineIndicator);
