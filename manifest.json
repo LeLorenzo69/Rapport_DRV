@@ -1,7 +1,7 @@
 {
   "name": "Rapport AMES DRV - BOSCH",
-  "short_name": "Rapport DRV",
-  "description": "Rapport d'assistance à la mise en service DRV / UTOPIA - BOSCH",
+  "short_name": "Rapport BOSCH",
+  "description": "Rapport technique - BOSCH",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

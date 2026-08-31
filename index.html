@@ -1921,16 +1921,6 @@ function handlePhotoUpload(input, previewId) {
   </div>
 </div>
 
-<!-- ===== SÉLECTEUR DE SOURCE PHOTO ===== -->
-<div id="photo-source-modal" class="photo-source-modal no-print" role="dialog" aria-modal="true" aria-label="Choisir la source de la photo">
-  <div class="photo-source-card">
-    <div class="photo-source-title">Ajouter une photo</div>
-    <button type="button" class="btn photo-source-btn" onclick="choosePhotoSource('camera')">📷 Prendre une photo</button>
-    <button type="button" class="btn photo-source-btn" onclick="choosePhotoSource('gallery')">🖼️ Choisir dans la galerie</button>
-    <button type="button" class="photo-source-cancel" onclick="closePhotoChooser()">Annuler</button>
-  </div>
-</div>
-
 <!-- ============================================================ PHOTO PAGES (dynamic) ============================================================ -->
 <div id="remarks-render-pages"></div><div id="photo-pages"></div>
 
@@ -2129,6 +2119,20 @@ function handlePhotoUpload(input, previewId) {
 </div>
 <!-- ============================================================ /RAPPORT : PROCÈS VERBAL ============================================================ -->
 
+<!-- ===== SÉLECTEUR DE SOURCE PHOTO =====
+     Placée en dehors des .app-view (DRV/Utopia et PV) afin de rester
+     accessible quelle que soit la vue actuellement affichée : auparavant
+     elle était imbriquée dans la vue DRV/Utopia, donc invisible (display:none
+     hérité du parent) tant qu'on n'avait pas rouvert cette vue depuis le menu. -->
+<div id="photo-source-modal" class="photo-source-modal no-print" role="dialog" aria-modal="true" aria-label="Choisir la source de la photo">
+  <div class="photo-source-card">
+    <div class="photo-source-title">Ajouter une photo</div>
+    <button type="button" class="btn photo-source-btn" onclick="choosePhotoSource('camera')">📷 Prendre une photo</button>
+    <button type="button" class="btn photo-source-btn" onclick="choosePhotoSource('gallery')">🖼️ Choisir dans la galerie</button>
+    <button type="button" class="photo-source-cancel" onclick="closePhotoChooser()">Annuler</button>
+  </div>
+</div>
+
 <script>
 
 /* ===== NAVIGATION MENU / RAPPORTS ===== */
@@ -2147,6 +2151,22 @@ function hideAllViews(){
   document.querySelectorAll('.app-view').forEach(function(v){ v.classList.remove('active'); });
 }
 
+// Recalcule la taille réelle (en pixels) des pads de signature d'une vue
+// qui vient de devenir visible. Tant qu'une vue est en display:none, ses
+// canvases de signature ont une taille nulle (0x0) : le pad de dessin
+// interne se retrouve alors réduit à 1x1 pixel, ce qui fait que le curseur
+// change bien de forme au survol mais qu'aucun trait ne s'affiche.
+// resizeCanvas() n'étant appelée automatiquement que sur l'évènement
+// 'resize' de la fenêtre, il faut la redéclencher manuellement à chaque
+// fois qu'une vue contenant des pads redevient active.
+function refreshSignaturePadsIn(viewEl){
+  if (!viewEl) return;
+  viewEl.querySelectorAll('canvas.signature-pad').forEach(function(canvas){
+    const pad = signaturePads[canvas.id];
+    if (pad && pad.resizeCanvas) pad.resizeCanvas(true);
+  });
+}
+
 function showMenu(){
   hideAllViews();
   document.getElementById('view-menu').classList.add('active');
@@ -2160,8 +2180,12 @@ function openReport(key){
     return;
   }
   hideAllViews();
-  document.getElementById(r.viewId).classList.add('active');
+  const view = document.getElementById(r.viewId);
+  view.classList.add('active');
   window.scrollTo(0, 0);
+  // La vue vient de passer en display:block : les canvases ont maintenant
+  // une taille réelle, on peut donc (re)dimensionner correctement les pads.
+  requestAnimationFrame(function(){ refreshSignaturePadsIn(view); });
 }
 
 document.addEventListener('DOMContentLoaded', showMenu);
@@ -2190,15 +2214,35 @@ function toggleAutreCable(){
  function setupSignaturePad(id) {
    const canvas=document.getElementById(id); if(!canvas || signaturePads[id]) return;
    const ctx=canvas.getContext('2d');
-   const state={canvas,ctx,drawing:false,hasInk:false,lastX:0,lastY:0};
+   const state={canvas,ctx,drawing:false,hasInk:false,lastX:0,lastY:0,pendingImage:null};
    signaturePads[id]=state;
    function resizeCanvas(preserve=true){
-     const previous=preserve&&state.hasInk?canvas.toDataURL('image/png'):null;
-     const rect=canvas.getBoundingClientRect(), dpr=Math.max(1,Math.min(window.devicePixelRatio||1,3));
+     const rect=canvas.getBoundingClientRect();
+     // Le parent (.app-view) peut être en display:none (vue non active) :
+     // rect vaut alors 0x0. On ne redimensionne pas dans ce cas, pour ne
+     // pas écraser un pad valide avec un support de dessin 1x1, et on
+     // réessaiera plus tard (voir refreshSignaturePadsIn), une fois la vue
+     // effectivement affichée.
+     if(rect.width<1||rect.height<1) return;
+     // Une image restaurée (rapport rouvert) en attente d'être dessinée
+     // (voir restoreSignature) est prioritaire sur une éventuelle capture
+     // de l'ancien canvas, car elle seule est fiable tant que la vue était
+     // masquée au moment de la restauration.
+     const pending=state.pendingImage;
+     const previous=(!pending&&preserve&&state.hasInk)?canvas.toDataURL('image/png'):null;
+     const dpr=Math.max(1,Math.min(window.devicePixelRatio||1,3));
      canvas.width=Math.max(1,Math.round(rect.width*dpr)); canvas.height=Math.max(1,Math.round(rect.height*dpr));
      ctx.setTransform(dpr,0,0,dpr,0,0); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=2; ctx.strokeStyle='#111';
-     if(previous){const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,rect.width,rect.height);state.hasInk=true;};img.src=previous;}
+     if(pending){
+       const img=new Image();
+       img.onload=()=>{ctx.drawImage(img,0,0,rect.width,rect.height);state.hasInk=true;};
+       img.src=pending;
+       state.pendingImage=null;
+     } else if(previous){
+       const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,rect.width,rect.height);state.hasInk=true;};img.src=previous;
+     }
    }
+   state.resizeCanvas=resizeCanvas;
    const point=e=>{const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};};
    canvas.addEventListener('pointerdown',e=>{e.preventDefault();const p=point(e);state.drawing=true;state.hasInk=true;state.lastX=p.x;state.lastY=p.y;try{canvas.setPointerCapture(e.pointerId);}catch(_){}ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+.01,p.y+.01);ctx.stroke();},{passive:false});
    canvas.addEventListener('pointermove',e=>{if(!state.drawing)return;e.preventDefault();const p=point(e);ctx.beginPath();ctx.moveTo(state.lastX,state.lastY);ctx.lineTo(p.x,p.y);ctx.stroke();state.lastX=p.x;state.lastY=p.y;},{passive:false});
@@ -2208,7 +2252,19 @@ function toggleAutreCable(){
  }
  function clearSignature(id){const s=signaturePads[id];if(!s)return;const r=s.canvas.getBoundingClientRect();s.ctx.clearRect(0,0,r.width,r.height);s.hasInk=false;}
  function signatureData(id){const s=signaturePads[id];return s&&s.hasInk?s.canvas.toDataURL('image/png'):'';}
- function restoreSignature(id,dataUrl){const s=signaturePads[id];if(!s||!dataUrl)return;const img=new Image();img.onload=()=>{const r=s.canvas.getBoundingClientRect();s.ctx.clearRect(0,0,r.width,r.height);s.ctx.drawImage(img,0,0,r.width,r.height);s.hasInk=true;};img.src=dataUrl;}
+ function restoreSignature(id,dataUrl){
+   const s=signaturePads[id];if(!s||!dataUrl)return;
+   const r=s.canvas.getBoundingClientRect();
+   if(r.width<1||r.height<1){
+     // La vue contenant ce pad n'est pas actuellement affichée : on ne
+     // peut pas dessiner dans un canvas de taille nulle. On mémorise
+     // l'image pour qu'elle soit appliquée dès que la vue redeviendra
+     // active (voir refreshSignaturePadsIn / resizeCanvas).
+     s.pendingImage=dataUrl;
+     return;
+   }
+   const img=new Image();img.onload=()=>{s.ctx.clearRect(0,0,r.width,r.height);s.ctx.drawImage(img,0,0,r.width,r.height);s.hasInk=true;};img.src=dataUrl;
+ }
  function initSignatures(){setupSignaturePad('signature-intervenant');setupSignaturePad('signature-installateur');}
  function saveSignatureData(data){data.signatureIntervenant=signatureData('signature-intervenant');data.signatureInstallateur=signatureData('signature-installateur');}
  function restoreSignatureData(data){initSignatures();requestAnimationFrame(()=>{restoreSignature('signature-intervenant',data.signatureIntervenant||'');restoreSignature('signature-installateur',data.signatureInstallateur||'');});}
